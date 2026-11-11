@@ -2,7 +2,7 @@
 
 An AI air traffic controller for X-Plane. Local-first, lightweight, ICAO phraseology, starting at Orlando International (KMCO).
 
-**Status: Phase 0.** The deterministic clearance/readback core and the XPLM bridge skeleton exist. The Tauri shell and voice loop are next. Not flyable yet.
+**Status: Phase 0.** The deterministic clearance/readback core, the Tauri console and the XPLM telemetry bridge exist. Voice, traffic and CIFP procedures are next. Not flyable end-to-end yet.
 
 ## Why this exists
 
