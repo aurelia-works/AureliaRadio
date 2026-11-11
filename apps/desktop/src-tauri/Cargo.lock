@@ -82,6 +82,7 @@ version = "0.1.0"
 dependencies = [
  "radio-core",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
 ]

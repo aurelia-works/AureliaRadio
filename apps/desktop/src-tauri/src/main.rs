@@ -1,12 +1,33 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use radio_core::{Controller, ControllerResponse, FrequencyKind, Phase, PilotRequest};
-use serde::Serialize;
-use std::sync::Mutex;
+use serde::{Deserialize, Serialize};
+use std::net::UdpSocket;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tauri::State;
+
+const TELEMETRY_STALE: Duration = Duration::from_secs(2);
+const PLUGIN_COMMAND_ADDR: &str = "127.0.0.1:49021";
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct Telemetry {
+    com1: f64,
+    standby: f64,
+    #[allow(dead_code)]
+    lat: f64,
+    #[allow(dead_code)]
+    lon: f64,
+    alt_ft: f64,
+    ias: f64,
+    hdg: f64,
+    xpdr: i32,
+}
 
 struct AppState {
     controller: Mutex<Controller>,
+    telemetry: Arc<Mutex<Option<Telemetry>>>,
+    last_seen: Arc<Mutex<Option<Instant>>>,
 }
 
 #[derive(Serialize, Clone)]
@@ -19,6 +40,10 @@ struct Snapshot {
     com1: String,
     standby: String,
     next_hint: String,
+    altitude_ft: f64,
+    ias: f64,
+    heading: f64,
+    transponder: i32,
 }
 
 #[derive(Serialize)]
@@ -27,6 +52,7 @@ struct Reply {
     snapshot: Snapshot,
     transmission: String,
     accepted: bool,
+    next_frequency: Option<String>,
 }
 
 fn phase_id(phase: Phase) -> &'static str {
@@ -46,8 +72,25 @@ fn frequency(controller: &Controller, kind: FrequencyKind, fallback: &str) -> St
         .unwrap_or_else(|| fallback.to_string())
 }
 
-fn snapshot_of(controller: &Controller) -> Snapshot {
-    let (com1, standby, hint) = match controller.phase() {
+fn is_fresh(state: &AppState) -> bool {
+    state
+        .last_seen
+        .lock()
+        .ok()
+        .and_then(|value| *value)
+        .map(|seen| seen.elapsed() < TELEMETRY_STALE)
+        .unwrap_or(false)
+}
+
+fn live_telemetry(state: &AppState) -> Option<Telemetry> {
+    if !is_fresh(state) {
+        return None;
+    }
+    state.telemetry.lock().ok().and_then(|value| value.clone())
+}
+
+fn snapshot_of(controller: &Controller, telemetry: Option<&Telemetry>) -> Snapshot {
+    let (fallback_com1, fallback_standby, hint) = match controller.phase() {
         Phase::ClearanceDelivery => (
             frequency(controller, FrequencyKind::Clearance, "134.700"),
             frequency(controller, FrequencyKind::Ground, "121.800"),
@@ -63,43 +106,95 @@ fn snapshot_of(controller: &Controller) -> Snapshot {
             "124.800".to_string(),
             "Request takeoff, then read it back",
         ),
-        Phase::Departure => (
-            "124.800".to_string(),
-            "—".to_string(),
-            "Contact departure",
+        Phase::Departure => ("124.800".to_string(), "—".to_string(), "Contact departure"),
+    };
+
+    let (com1, standby, altitude_ft, ias, heading, transponder) = match telemetry {
+        Some(value) => (
+            format!("{:.3}", value.com1),
+            format!("{:.3}", value.standby),
+            value.alt_ft,
+            value.ias,
+            value.hdg,
+            value.xpdr,
         ),
+        None => (fallback_com1, fallback_standby, 0.0, 0.0, 0.0, 0),
     };
 
     Snapshot {
         phase: phase_id(controller.phase()).to_string(),
         runway: controller.runway().to_string(),
-        callsign: controller.clearance().map(|clearance| clearance.callsign.clone()),
-        connected: false,
+        callsign: controller
+            .clearance()
+            .map(|clearance| clearance.callsign.clone()),
+        connected: telemetry.is_some(),
         com1,
         standby,
         next_hint: hint.to_string(),
+        altitude_ft,
+        ias,
+        heading,
+        transponder,
     }
 }
 
-fn reply(controller: &Controller, response: ControllerResponse) -> Reply {
+fn reply(
+    controller: &Controller,
+    telemetry: Option<&Telemetry>,
+    response: ControllerResponse,
+) -> Reply {
     Reply {
-        snapshot: snapshot_of(controller),
+        snapshot: snapshot_of(controller, telemetry),
         transmission: response.transmission,
         accepted: response.accepted,
+        next_frequency: response.next_frequency.map(|frequency| frequency.mhz()),
     }
+}
+
+fn send_to_plugin(payload: String) {
+    if let Ok(socket) = UdpSocket::bind("127.0.0.1:0") {
+        let _ = socket.send_to(payload.as_bytes(), PLUGIN_COMMAND_ADDR);
+    }
+}
+
+fn spawn_telemetry_listener(
+    telemetry: Arc<Mutex<Option<Telemetry>>>,
+    last_seen: Arc<Mutex<Option<Instant>>>,
+) {
+    std::thread::spawn(move || {
+        let Ok(socket) = UdpSocket::bind("127.0.0.1:49020") else {
+            eprintln!("Aurelia Radio: could not bind telemetry port 49020");
+            return;
+        };
+        let _ = socket.set_read_timeout(Some(Duration::from_millis(500)));
+        let mut buffer = [0u8; 2048];
+        loop {
+            if let Ok((length, _)) = socket.recv_from(&mut buffer) {
+                if let Ok(parsed) = serde_json::from_slice::<Telemetry>(&buffer[..length]) {
+                    *telemetry.lock().expect("telemetry lock") = Some(parsed);
+                    *last_seen.lock().expect("last seen lock") = Some(Instant::now());
+                }
+            }
+        }
+    });
 }
 
 #[tauri::command]
 fn snapshot(state: State<AppState>) -> Snapshot {
     let controller = state.controller.lock().expect("controller lock");
-    snapshot_of(&controller)
+    let telemetry = live_telemetry(state.inner());
+    snapshot_of(&controller, telemetry.as_ref())
 }
 
 #[tauri::command]
 fn request_clearance(state: State<AppState>, callsign: String, destination: String) -> Reply {
     let mut controller = state.controller.lock().expect("controller lock");
-    let response = controller.handle(PilotRequest::Clearance { callsign, destination });
-    reply(&controller, response)
+    let response = controller.handle(PilotRequest::Clearance {
+        callsign,
+        destination,
+    });
+    let telemetry = live_telemetry(state.inner());
+    reply(&controller, telemetry.as_ref(), response)
 }
 
 #[tauri::command]
@@ -112,34 +207,59 @@ fn clearance_readback(state: State<AppState>) -> Option<String> {
 fn readback(state: State<AppState>, text: String) -> Reply {
     let mut controller = state.controller.lock().expect("controller lock");
     let response = controller.handle(PilotRequest::Readback(text));
-    reply(&controller, response)
+    let telemetry = live_telemetry(state.inner());
+    reply(&controller, telemetry.as_ref(), response)
 }
 
 #[tauri::command]
 fn request_taxi(state: State<AppState>) -> Reply {
     let mut controller = state.controller.lock().expect("controller lock");
     let response = controller.handle(PilotRequest::RequestTaxi);
-    reply(&controller, response)
+    let telemetry = live_telemetry(state.inner());
+    reply(&controller, telemetry.as_ref(), response)
 }
 
 #[tauri::command]
 fn request_takeoff(state: State<AppState>) -> Reply {
     let mut controller = state.controller.lock().expect("controller lock");
     let response = controller.handle(PilotRequest::RequestTakeoff);
-    reply(&controller, response)
+    let telemetry = live_telemetry(state.inner());
+    reply(&controller, telemetry.as_ref(), response)
 }
 
 #[tauri::command]
 fn request_departure(state: State<AppState>) -> Reply {
     let mut controller = state.controller.lock().expect("controller lock");
     let response = controller.handle(PilotRequest::RequestDeparture);
-    reply(&controller, response)
+    let telemetry = live_telemetry(state.inner());
+    reply(&controller, telemetry.as_ref(), response)
+}
+
+#[tauri::command]
+fn set_com1(mhz: f64) {
+    send_to_plugin(format!("{{\"cmd\":\"set_com1\",\"mhz\":{mhz:.3}}}"));
+}
+
+#[tauri::command]
+fn set_standby(mhz: f64) {
+    send_to_plugin(format!("{{\"cmd\":\"set_standby\",\"mhz\":{mhz:.3}}}"));
+}
+
+#[tauri::command]
+fn swap_com1() {
+    send_to_plugin("{\"cmd\":\"swap_com1\"}".to_string());
 }
 
 fn main() {
+    let telemetry = Arc::new(Mutex::new(None));
+    let last_seen = Arc::new(Mutex::new(None));
+    spawn_telemetry_listener(Arc::clone(&telemetry), Arc::clone(&last_seen));
+
     tauri::Builder::default()
         .manage(AppState {
             controller: Mutex::new(Controller::kmco()),
+            telemetry,
+            last_seen,
         })
         .invoke_handler(tauri::generate_handler![
             snapshot,
@@ -148,7 +268,10 @@ fn main() {
             readback,
             request_taxi,
             request_takeoff,
-            request_departure
+            request_departure,
+            set_com1,
+            set_standby,
+            swap_com1
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aurelia Radio");

@@ -9,10 +9,16 @@ type Snapshot = {
   com1: string;
   standby: string;
   nextHint: string;
+  altitudeFt: number;
+  ias: number;
+  heading: number;
+  transponder: number;
 };
 
-type Reply = { snapshot: Snapshot; transmission: string; accepted: boolean };
+type Reply = { snapshot: Snapshot; transmission: string; accepted: boolean; nextFrequency: string | null };
 type Line = { role: "atc" | "pilot" | "system"; text: string };
+
+const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 const PHASES = [
   ["clearance", "Clearance"],
@@ -40,10 +46,20 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (!isTauri) return;
     refresh();
+    const id = setInterval(refresh, 1000);
+    return () => clearInterval(id);
   }, []);
 
   const send = async (command: string, args: Record<string, unknown> = {}, pilotText?: string) => {
+    if (!isTauri) {
+      setLines((prev) => [
+        ...prev,
+        { role: "system", text: "Run this inside the Tauri app: npm run app:dev." },
+      ]);
+      return;
+    }
     if (pilotText) {
       setLines((prev) => [...prev, { role: "pilot", text: pilotText }]);
     }
@@ -53,6 +69,10 @@ export default function App() {
       setLines((prev) => [...prev, { role: "atc", text: reply.transmission }]);
       if (!reply.accepted) {
         setLines((prev) => [...prev, { role: "system", text: "Readback rejected. Correct it and send again." }]);
+      }
+      if (reply.nextFrequency && reply.snapshot.connected) {
+        await invoke("set_standby", { mhz: Number(reply.nextFrequency) }).catch(() => {});
+        refresh();
       }
     } catch (error) {
       setLines((prev) => [...prev, { role: "system", text: String(error) }]);
@@ -102,6 +122,16 @@ export default function App() {
             <b>{snapshot?.standby ?? "—"}</b>
           </div>
           <button
+            className="swap"
+            disabled={!snapshot?.connected}
+            onClick={async () => {
+              await invoke("swap_com1").catch(() => {});
+              refresh();
+            }}
+          >
+            SWAP COM1
+          </button>
+          <button
             className={`ptt ${tx ? "tx" : ""}`}
             onMouseDown={() => setTx(true)}
             onMouseUp={() => {
@@ -128,6 +158,18 @@ export default function App() {
           <div>
             <small>CALLSIGN</small>
             <b>{snapshot?.callsign ?? callsign}</b>
+          </div>
+          <div>
+            <small>ALT</small>
+            <b>{snapshot?.connected ? `${Math.round(snapshot.altitudeFt)} ft` : "—"}</b>
+          </div>
+          <div>
+            <small>IAS</small>
+            <b>{snapshot?.connected ? `${Math.round(snapshot.ias)} kt` : "—"}</b>
+          </div>
+          <div>
+            <small>HDG</small>
+            <b>{snapshot?.connected ? `${Math.round(snapshot.heading).toString().padStart(3, "0")}°` : "—"}</b>
           </div>
           <div className="hint">{snapshot?.nextHint ?? "Request clearance"}</div>
         </header>
