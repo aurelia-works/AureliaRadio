@@ -1,0 +1,20 @@
+{
+  "icao": "KMCO",
+  "name": "Orlando International",
+  "runways": [
+    { "ident": "17L", "length_m": 3048, "width_m": 46, "heading_deg": 175 },
+    { "ident": "17R", "length_m": 3048, "width_m": 46, "heading_deg": 175 },
+    { "ident": "18L", "length_m": 3659, "width_m": 61, "heading_deg": 180 },
+    { "ident": "18R", "length_m": 3659, "width_m": 61, "heading_deg": 180 }
+  ],
+  "frequencies": [
+    { "kind": "atis", "frequency": "121.250", "label": "ATIS Arrival" },
+    { "kind": "atis", "frequency": "120.525", "label": "ATIS Departure" },
+    { "kind": "clearance", "frequency": "134.700", "label": "Clearance Delivery" },
+    { "kind": "ground", "frequency": "121.800", "label": "Ground" },
+    { "kind": "ground", "frequency": "126.400", "label": "Ground" },
+    { "kind": "tower", "frequency": "118.450", "label": "Tower" },
+    { "kind": "tower", "frequency": "124.300", "label": "Tower" },
+    { "kind": "unicom", "frequency": "122.950", "label": "UNICOM" }
+  ]
+}

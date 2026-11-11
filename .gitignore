@@ -1,0 +1,14 @@
+# Build output
+target/
+build/
+dist/
+
+# Node
+node_modules/
+
+# X-Plane plugin output
+plugin/AureliaRadioXPLM/Dist/
+
+# Local app data
+*.log
+.DS_Store

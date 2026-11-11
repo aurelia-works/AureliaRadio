@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test the deterministic core
+        run: cargo test --workspace
+
+  desktop:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+      - name: Build frontend
+        working-directory: apps/desktop
+        run: npm run build
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check the Tauri shell
+        working-directory: apps/desktop/src-tauri
+        run: cargo check
+
+  # The XPLM plugin needs the X-Plane SDK, which is not vendored.
+  # Build it locally with plugin/AureliaRadioXPLM/build.sh.
