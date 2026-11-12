@@ -44,7 +44,7 @@ Goal: hold a key, speak, and the core gets the right request.
 - 20 recorded WAV fixtures run through ASR and parser in a test.
 - Done when: the 20 scripted calls score ≥95% intent accuracy in `cargo test`; idle RSS < 150 MB measured.
 - Needs: P0.5 (PTT button and transcript components).
-- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. The typed box calls `submit_utterance`, which uses that parser. Microphone capture, the ASR model and the idle RSS measurement are still open.
+- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. The typed box calls `submit_utterance`. Hold to talk opens the microphone and closes it on release; the samples are not saved, because speech recognition is not installed. The dev panel can turn that off. Still open: a local ASR model, the 20 WAV fixtures through that model, the idle RSS measurement, and a push-to-talk key. Radio does not use Aurelia Voice's Insert key.
 
 ### P1b — Voice out
 Goal: the controller answers out loud and sounds like a radio.
