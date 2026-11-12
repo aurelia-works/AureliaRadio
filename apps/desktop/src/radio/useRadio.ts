@@ -48,7 +48,6 @@ export function useRadio() {
         const reply = await invoke<Reply>(command, args);
         setSnapshot(reply.snapshot);
         push(line("atc", reply.transmission, !reply.accepted));
-        if (!reply.accepted) push(line("system", "Readback rejected. Correct it and send again."));
         if (reply.nextFrequency && reply.snapshot.connected) {
           await invoke("set_standby", { mhz: Number(reply.nextFrequency) }).catch(() => {});
           refresh();

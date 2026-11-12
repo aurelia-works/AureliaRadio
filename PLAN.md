@@ -1,6 +1,6 @@
 # Aurelia Radio — phase plan
 
-Written 2026-11-11. Status: **P0.5 is in review**. Later phases are not started.
+Written 2026-11-11. Status: **P0.5 is in review. P1a is part done.**
 
 One phase per thread. Each phase ends with its "done when" check, a `HANDOFF-<date>-PHASE-<n>.md`, and a stop. Times are agent time. Token figures are rough ranges, sized from the current code (about 1,500 lines for all of Phase 0) and how much new code and test iteration each phase needs.
 
@@ -44,7 +44,7 @@ Goal: hold a key, speak, and the core gets the right request.
 - 20 recorded WAV fixtures run through ASR and parser in a test.
 - Done when: the 20 scripted calls score ≥95% intent accuracy in `cargo test`; idle RSS < 150 MB measured.
 - Needs: P0.5 (PTT button and transcript components).
-- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. Microphone capture, the ASR model and the idle RSS measurement are still open.
+- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. The typed box calls `submit_utterance`, which uses that parser. Microphone capture, the ASR model and the idle RSS measurement are still open.
 
 ### P1b — Voice out
 Goal: the controller answers out loud and sounds like a radio.
