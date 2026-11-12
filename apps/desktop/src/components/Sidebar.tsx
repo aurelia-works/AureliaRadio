@@ -120,7 +120,7 @@ function RadioStack({
         <MicIcon />
         {talking ? "Transmitting" : "Hold to talk"}
       </button>
-      <p className="tiny">Hold ` while this window is focused. The A320 RMP and the 737 tuning panel drive the same COM1.</p>
+      <p className="tiny">Hold ` or a joystick button while this window is focused. The A320 RMP and the 737 tuning panel drive the same COM1.</p>
     </section>
   );
 }
