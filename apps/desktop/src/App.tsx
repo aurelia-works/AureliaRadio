@@ -6,7 +6,16 @@ import { Transcript } from "./components/Transcript";
 import { Composer } from "./components/Composer";
 import { DevPanel } from "./dev/DevPanel";
 import { useDevSettings } from "./dev/devSettings";
-import { createTalkHolds, createTalkSession, isTypingTarget, requestBrowserMic, TALK_CODE, talkNote } from "./radio/ptt";
+import {
+  createTalkHolds,
+  createTalkSession,
+  isTypingTarget,
+  joystickPressed,
+  requestBrowserMic,
+  TALK_CODE,
+  talkEdge,
+  talkNote,
+} from "./radio/ptt";
 import { isTauri, useRadio } from "./radio/useRadio";
 import { isDemo } from "./radio/demo";
 
@@ -33,6 +42,18 @@ export default function App() {
   };
   const applyRef = useRef(applyHold);
   applyRef.current = applyHold;
+  const padWas = useRef(false);
+  const joyRef = useRef({ on: dev.settings.joystickTalk, button: dev.settings.joystickButton });
+  joyRef.current = { on: dev.settings.joystickTalk, button: dev.settings.joystickButton };
+  const readJoy = () => {
+    try {
+      return joystickPressed(navigator.getGamepads?.() ?? [], joyRef.current.button, joyRef.current.on);
+    } catch {
+      return false;
+    }
+  };
+  const readJoyRef = useRef(readJoy);
+  readJoyRef.current = readJoy;
 
   useEffect(() => {
     document.documentElement.classList.toggle("tauri", isTauri);
@@ -65,7 +86,10 @@ export default function App() {
       if (e.code !== TALK_CODE) return;
       applyRef.current(holds.current.keyUp());
     };
-    const blur = () => applyRef.current(holds.current.dropAll());
+    const blur = () => {
+      padWas.current = readJoyRef.current();
+      applyRef.current(holds.current.dropAll());
+    };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     window.addEventListener("blur", blur);
@@ -73,6 +97,56 @@ export default function App() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
+    };
+  }, []);
+
+  useEffect(() => {
+    let raf = 0;
+    let loop = false;
+    const step = () => {
+      const down = readJoyRef.current();
+      const edge = talkEdge(padWas.current, down);
+      padWas.current = down;
+      if (edge === "press") applyRef.current(holds.current.padDown());
+      if (edge === "release") applyRef.current(holds.current.padUp());
+      let connected = false;
+      try {
+        const pads = navigator.getGamepads?.() ?? [];
+        for (let i = 0; i < pads.length; i += 1) if (pads[i]) connected = true;
+      } catch {
+        connected = false;
+      }
+      if (connected && !document.hidden) raf = requestAnimationFrame(step);
+      else loop = false;
+    };
+    const start = () => {
+      if (loop || document.hidden) return;
+      loop = true;
+      raf = requestAnimationFrame(step);
+    };
+    const onVis = () => {
+      if (document.hidden) {
+        padWas.current = readJoyRef.current();
+        applyRef.current(holds.current.dropAll());
+        cancelAnimationFrame(raf);
+        loop = false;
+        return;
+      }
+      start();
+    };
+    window.addEventListener("gamepadconnected", start);
+    window.addEventListener("gamepaddisconnected", start);
+    document.addEventListener("visibilitychange", onVis);
+    start();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("gamepadconnected", start);
+      window.removeEventListener("gamepaddisconnected", start);
+      document.removeEventListener("visibilitychange", onVis);
+      if (padWas.current) {
+        padWas.current = false;
+        applyRef.current(holds.current.padUp());
+      }
     };
   }, []);
 

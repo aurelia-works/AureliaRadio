@@ -9,6 +9,8 @@ export type DevSettings = {
   showPhaseRail: boolean;
   sidebarOpen: boolean;
   micOnHold: boolean;
+  joystickTalk: boolean;
+  joystickButton: number;
 };
 
 export const ACCENT_PRESETS: [string, string][] = [
@@ -26,6 +28,8 @@ export const DEFAULTS: DevSettings = {
   showPhaseRail: true,
   sidebarOpen: true,
   micOnHold: true,
+  joystickTalk: true,
+  joystickButton: 0,
 };
 
 const KEY = "aurelia-radio.dev.v1";
