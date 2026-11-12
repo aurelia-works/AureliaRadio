@@ -11,6 +11,7 @@ export type DevSettings = {
   micOnHold: boolean;
   joystickTalk: boolean;
   joystickButton: number;
+  controllerVoice: boolean;
 };
 
 export const ACCENT_PRESETS: [string, string][] = [
@@ -30,6 +31,7 @@ export const DEFAULTS: DevSettings = {
   micOnHold: true,
   joystickTalk: true,
   joystickButton: 0,
+  controllerVoice: true,
 };
 
 const KEY = "aurelia-radio.dev.v1";

@@ -10,7 +10,7 @@ type Props = {
   onClose: () => void;
 };
 
-/** Looks, whether hold-to-talk opens the microphone, and whether the speech model file is on disk. Nothing here changes what the controller says. */
+/** Looks, the microphone, the speech-model file, and whether new controller lines are spoken. Nothing here changes what the controller says. */
 export function DevPanel({ settings, update, reset, speechModel, onClose }: Props) {
   return (
     <aside className="dev-panel" aria-label="Dev panel">
@@ -79,6 +79,17 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
       <Toggle id="dev-radio" label="Radio stack" on={settings.showRadioStack} set={(v) => update({ showRadioStack: v })} />
       <Toggle id="dev-sidebar" label="Sidebar" on={settings.sidebarOpen} set={(v) => update({ sidebarOpen: v })} />
       <Toggle id="dev-mic" label="Microphone on hold" on={settings.micOnHold} set={(v) => update({ micOnHold: v })} />
+      <div className="dev-group">
+        <Toggle
+          id="dev-voice"
+          label="Controller voice"
+          on={settings.controllerVoice}
+          set={(v) => update({ controllerVoice: v })}
+        />
+        <p className="tiny">
+          A new controller line is read by the system voice on this Mac. Pilot lines and notes stay quiet.
+        </p>
+      </div>
       <Toggle id="dev-joy" label="Joystick talk" on={settings.joystickTalk} set={(v) => update({ joystickTalk: v })} />
       <label className="dev-group" htmlFor="dev-joy-button">
         <span className="dev-label">

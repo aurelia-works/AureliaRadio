@@ -1,6 +1,6 @@
 # Aurelia Radio — phase plan
 
-Written 2026-11-11. Status: **P0.5 is in review. P1a is part done.**
+Written 2026-11-11. Status: **P0.5 is in review. P1a and P1b are part done.**
 
 One phase per thread. Each phase ends with its "done when" check, a `HANDOFF-<date>-PHASE-<n>.md`, and a stop. Times are agent time. Token figures are rough ranges, sized from the current code (about 1,500 lines for all of Phase 0) and how much new code and test iteration each phase needs.
 
@@ -8,7 +8,7 @@ One phase per thread. Each phase ends with its "done when" check, a `HANDOFF-<da
 |---|---|---|---|---|---|---|
 | P0.5 | Brand and polish | 40–60 min | 200–350k | not measured | Sonnet 5.5, medium | in review |
 | P1a | Voice in | 60–90 min | 350–550k | not measured | Sonnet 5.5, medium | part done |
-| P1b | Voice out | 45–75 min | 250–450k | | Sonnet 5.5, medium | not started |
+| P1b | Voice out | 45–75 min | 250–450k | not measured | Sonnet 5.5, medium | part done |
 | P2a | Taxi graph | 60–90 min | 350–550k | | Opus 5.5, medium | not started |
 | P2b | Ground and tower flow | 45–75 min | 300–450k | | Sonnet 5.5, medium | not started |
 | P3a | CIFP and route clearance | 60–90 min | 400–600k | | Opus 5.5, medium | not started |
@@ -51,6 +51,7 @@ Goal: the controller answers out loud and sounds like a radio.
 - TTS (OS voice first, Piper/Kokoro if it fits the budget), radio FX chain (band-pass, compression, squelch, click), in-sim panel text in the plugin.
 - Done when: first audio < 1.5 s and active RSS < 400 MB measured on the M1 Air; a wrong readback gets the correct spoken "say again"; Jah hears a clearance exchange.
 - Needs: P1a.
+- Part done: a new controller line is spoken with the macOS system voice. Lines already on screen stay quiet. Pilot lines and system notes stay quiet. The dev panel can turn the voice off. The browser demo uses the browser speech engine, and the desktop app uses that engine when the system voice does not start. Still open: the radio effect chain, the 1.5 s first-audio measurement, active RSS, and Jah hearing a clearance exchange.
 
 ### P2a — Taxi graph
 Goal: real taxi routes instead of the hardcoded "via A".

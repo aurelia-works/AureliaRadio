@@ -2,8 +2,10 @@
 
 use radio_core::{Controller, ControllerResponse, FrequencyKind, Phase, PilotRequest};
 use serde::{Deserialize, Serialize};
+use std::io::Write;
 use std::net::UdpSocket;
 use std::path::Path;
+use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Manager, State};
@@ -30,6 +32,7 @@ struct AppState {
     controller: Mutex<Controller>,
     telemetry: Arc<Mutex<Option<Telemetry>>>,
     last_seen: Arc<Mutex<Option<Instant>>>,
+    speaker: Mutex<Option<Child>>,
 }
 
 #[derive(Serialize, Clone)]
@@ -281,6 +284,58 @@ fn speech_model(app: tauri::AppHandle) -> SpeechModel {
     SpeechModel { installed }
 }
 
+/// Text worth handing to the system voice. Empty lines are not spoken.
+/// The cap keeps one reply from turning into a long monologue.
+fn spoken_text(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(trimmed.chars().take(2_000).collect())
+}
+
+fn stop_speaker(slot: &mut Option<Child>) {
+    if let Some(mut child) = slot.take() {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+}
+
+/// Speak one controller line with the macOS `say` command.
+/// The line is written to stdin so it cannot be read as a flag (`--network-send` included).
+/// An empty line stops whatever is still speaking.
+/// Returns false when this system did not speak, so the webview can use its own voice.
+#[tauri::command]
+fn speak_line(text: String, state: State<AppState>) -> bool {
+    let mut slot = state.speaker.lock().expect("speaker lock");
+    stop_speaker(&mut slot);
+    let Some(spoken) = spoken_text(&text) else {
+        return true;
+    };
+    #[cfg(target_os = "macos")]
+    {
+        let Ok(mut child) = Command::new("/usr/bin/say")
+            .arg("--input-file=-")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+        else {
+            return false;
+        };
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(spoken.as_bytes());
+        }
+        *slot = Some(child);
+        return true;
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = spoken;
+        false
+    }
+}
+
 fn main() {
     let telemetry = Arc::new(Mutex::new(None));
     let last_seen = Arc::new(Mutex::new(None));
@@ -291,6 +346,7 @@ fn main() {
             controller: Mutex::new(Controller::kmco()),
             telemetry,
             last_seen,
+            speaker: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
             snapshot,
@@ -304,7 +360,8 @@ fn main() {
             set_com1,
             set_standby,
             swap_com1,
-            speech_model
+            speech_model,
+            speak_line
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aurelia Radio");
@@ -312,7 +369,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::speech_model_installed;
+    use super::{speech_model_installed, spoken_text};
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -337,5 +394,16 @@ mod tests {
         fs::create_dir(&weights).expect("weights name as a directory");
         assert!(!speech_model_installed(&root));
         fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn blank_text_is_not_spoken_and_a_line_is_clipped() {
+        assert_eq!(spoken_text("  "), None);
+        assert_eq!(
+            spoken_text("N123AB, say again.").as_deref(),
+            Some("N123AB, say again.")
+        );
+        let long = "a".repeat(2_050);
+        assert_eq!(spoken_text(&long).expect("clipped").chars().count(), 2_000);
     }
 }
