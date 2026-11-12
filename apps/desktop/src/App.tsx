@@ -18,6 +18,7 @@ import {
   talkNote,
   type SpeechModelSlot,
 } from "./radio/ptt";
+import { browserSynth, createSpeaker, nextSpoken } from "./radio/voice";
 import { isTauri, useRadio } from "./radio/useRadio";
 import { isDemo } from "./radio/demo";
 
@@ -27,7 +28,7 @@ export default function App() {
   const [devOpen, setDevOpen] = useState(false);
   const [callsign, setCallsign] = useState("N123AB");
   const [destination, setDestination] = useState("KJFK");
-  const { sidebarOpen, micOnHold } = dev.settings;
+  const { sidebarOpen, micOnHold, controllerVoice } = dev.settings;
   const talk = useRef(createTalkSession(requestBrowserMic));
   const holds = useRef(createTalkHolds());
   const [talking, setTalking] = useState(false);
@@ -57,10 +58,33 @@ export default function App() {
   };
   const readJoyRef = useRef(readJoy);
   readJoyRef.current = readJoy;
+  const speaker = useRef(createSpeaker(() => browserSynth()));
+  const seenLine = useRef<number | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("tauri", isTauri);
   }, []);
+
+  useEffect(() => {
+    const next = nextSpoken(radio.lines, seenLine.current, controllerVoice);
+    seenLine.current = next.seen;
+    if (!controllerVoice) {
+      speaker.current.stop();
+      if (isTauri) void invoke("speak_line", { text: "" }).catch(() => {});
+      return;
+    }
+    if (!next.say) return;
+    if (isTauri) {
+      const text = next.say;
+      void invoke<boolean>("speak_line", { text })
+        .then((spoken) => {
+          if (!spoken) speaker.current.say(text);
+        })
+        .catch(() => speaker.current.say(text));
+      return;
+    }
+    speaker.current.say(next.say);
+  }, [radio.lines, controllerVoice]);
 
   useEffect(() => {
     if (!isTauri) return;
