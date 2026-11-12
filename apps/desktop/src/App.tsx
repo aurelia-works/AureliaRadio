@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { TitleBar } from "./components/TitleBar";
 import { Sidebar } from "./components/Sidebar";
 import { StripHeader } from "./components/StripHeader";
@@ -18,6 +19,7 @@ import {
   talkNote,
   type SpeechModelSlot,
 } from "./radio/ptt";
+import { browserClickGraph, createClicker, finishClick, nextClicks } from "./radio/click";
 import { browserSynth, createSpeaker, nextSpoken } from "./radio/voice";
 import { isTauri, useRadio } from "./radio/useRadio";
 import { isDemo } from "./radio/demo";
@@ -59,31 +61,74 @@ export default function App() {
   const readJoyRef = useRef(readJoy);
   readJoyRef.current = readJoy;
   const speaker = useRef(createSpeaker(() => browserSynth()));
+  const clicker = useRef(createClicker(() => browserClickGraph()));
   const seenLine = useRef<number | null>(null);
+  const air = useRef(false);
+  const voiceGen = useRef(0);
+  const expecting = useRef(false);
+  const playClicks = (kinds: Array<"open" | "close">) => {
+    for (const kind of kinds) clicker.current.play(kind);
+  };
+  const endClick = () => {
+    const done = finishClick(air.current);
+    air.current = done.air;
+    playClicks(done.clicks);
+  };
 
   useEffect(() => {
     document.documentElement.classList.toggle("tauri", isTauri);
   }, []);
 
   useEffect(() => {
+    if (!isTauri) return;
+    let live = true;
+    let stop = () => {};
+    void listen<number>("speak-done", (event) => {
+      if (!live || !expecting.current) return;
+      if (voiceGen.current !== 0 && event.payload !== voiceGen.current) return;
+      expecting.current = false;
+      endClick();
+    }).then((unlisten) => {
+      if (live) stop = unlisten;
+      else unlisten();
+    });
+    return () => {
+      live = false;
+      stop();
+    };
+  }, []);
+
+  useEffect(() => {
     const next = nextSpoken(radio.lines, seenLine.current, controllerVoice);
     seenLine.current = next.seen;
+    const edge = nextClicks(air.current, next.say, controllerVoice);
+    air.current = edge.air;
+    playClicks(edge.clicks);
     if (!controllerVoice) {
+      expecting.current = false;
       speaker.current.stop();
       if (isTauri) void invoke("speak_line", { text: "" }).catch(() => {});
       return;
     }
     if (!next.say) return;
+    const text = next.say;
     if (isTauri) {
-      const text = next.say;
-      void invoke<boolean>("speak_line", { text })
-        .then((spoken) => {
-          if (!spoken) speaker.current.say(text);
+      expecting.current = true;
+      void invoke<{ spoken: boolean; generation: number }>("speak_line", { text })
+        .then((started) => {
+          voiceGen.current = started.generation;
+          if (!started.spoken) {
+            expecting.current = false;
+            speaker.current.say(text, endClick);
+          }
         })
-        .catch(() => speaker.current.say(text));
+        .catch(() => {
+          expecting.current = false;
+          speaker.current.say(text, endClick);
+        });
       return;
     }
-    speaker.current.say(next.say);
+    speaker.current.say(text, endClick);
   }, [radio.lines, controllerVoice]);
 
   useEffect(() => {
