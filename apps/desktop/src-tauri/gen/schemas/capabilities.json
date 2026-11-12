@@ -1,1 +1,1 @@
-{}
+{"main-window":{"identifier":"main-window","description":"The title bar may drag the window and double-click to zoom it. App commands stay on the local default.","local":true,"windows":["main"],"permissions":["core:window:allow-start-dragging","core:window:allow-internal-toggle-maximize"]}}
