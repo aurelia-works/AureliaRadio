@@ -68,6 +68,29 @@ test("a second line cancels the one still being spoken", () => {
   assert.deepEqual(calls, ["cancel", "speak:one", "cancel", "speak:two", "cancel"]);
 });
 
+test("only the line still playing reports that it ended", () => {
+  const ends: Array<(() => void) | undefined> = [];
+  const speaker = createSpeaker(() => ({
+    speak(utterance) {
+      ends.push(utterance.onend);
+    },
+    cancel() {},
+  }));
+  let finished = 0;
+  speaker.say("one", () => {
+    finished += 1;
+  });
+  speaker.say("two", () => {
+    finished += 1;
+  });
+  ends[0]?.();
+  assert.equal(finished, 0);
+  assert.equal(speaker.current(), "two");
+  ends[1]?.();
+  assert.equal(finished, 1);
+  assert.equal(speaker.current(), null);
+});
+
 test("a missing speech engine is ignored", () => {
   const speaker = createSpeaker((): SpeechSynth | null => null);
   speaker.say("hello");

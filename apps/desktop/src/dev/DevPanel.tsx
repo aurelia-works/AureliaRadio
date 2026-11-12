@@ -87,7 +87,8 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
           set={(v) => update({ controllerVoice: v })}
         />
         <p className="tiny">
-          A new controller line is read by the system voice on this Mac. Pilot lines and notes stay quiet.
+          A new controller line is read by the system voice on this Mac, with a short radio click. Pilot lines and
+          notes stay quiet.
         </p>
       </div>
       <Toggle id="dev-joy" label="Joystick talk" on={settings.joystickTalk} set={(v) => update({ joystickTalk: v })} />

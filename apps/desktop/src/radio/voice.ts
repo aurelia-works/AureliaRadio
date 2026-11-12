@@ -37,7 +37,7 @@ export function createSpeaker(getSynth: () => SpeechSynth | null) {
   let current: string | null = null;
   return {
     current: () => current,
-    say(text: string) {
+    say(text: string, onend?: () => void) {
       const synth = getSynth();
       if (!synth) {
         current = null;
@@ -49,7 +49,9 @@ export function createSpeaker(getSynth: () => SpeechSynth | null) {
         synth.speak({
           text,
           onend: () => {
-            if (current === text) current = null;
+            if (current !== text) return;
+            current = null;
+            onend?.();
           },
         });
       } catch {
