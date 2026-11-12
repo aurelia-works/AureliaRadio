@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createTalkSession, type MicStream } from "./ptt.ts";
+import { createTalkHolds, createTalkSession, isTypingTarget, TALK_CODE, talkNote, type MicStream } from "./ptt.ts";
 
 function deferred<T>() {
   let resolve: (value: T) => void = () => {};
@@ -89,6 +89,43 @@ test("a denied mic is reported once and can be tried again", async () => {
   assert.equal(session.release().heard, null);
   await session.press();
   assert.equal(session.phase(), "live");
+});
+
+test("the button and the key share one microphone", () => {
+  const holds = createTalkHolds();
+  assert.equal(holds.keyDown(), "press");
+  assert.equal(holds.keyDown(), "ignore");
+  assert.equal(holds.pointerDown(), "ignore");
+  assert.equal(holds.keyUp(), "ignore");
+  assert.equal(holds.held(), true);
+  assert.equal(holds.pointerUp(), "release");
+  assert.equal(holds.held(), false);
+  assert.equal(holds.pointerUp(), "ignore");
+});
+
+test("leaving the window drops every hold", () => {
+  const holds = createTalkHolds();
+  holds.keyDown();
+  holds.pointerDown();
+  assert.equal(holds.dropAll(), "release");
+  assert.equal(holds.keyUp(), "ignore");
+  assert.equal(holds.dropAll(), "ignore");
+});
+
+test("the talk key is backtick, not Insert, and not a text field", () => {
+  assert.equal(TALK_CODE, "Backquote");
+  assert.notEqual(TALK_CODE, "Insert");
+  assert.equal(isTypingTarget(null), false);
+  assert.equal(isTypingTarget({ tagName: "TEXTAREA" }), true);
+  assert.equal(isTypingTarget({ tagName: "input" }), true);
+  assert.equal(isTypingTarget({ tagName: "DIV", isContentEditable: true }), true);
+  assert.equal(isTypingTarget({ tagName: "BUTTON" }), false);
+});
+
+test("an idle release with the microphone switch off has a note", () => {
+  assert.match(talkNote("idle", false) ?? "", /dev panel/);
+  assert.equal(talkNote("cancelled", true), null);
+  assert.match(talkNote("discarded", true) ?? "", /not installed/);
 });
 
 test("a denial that arrives after release does not stick", async () => {

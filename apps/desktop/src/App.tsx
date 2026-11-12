@@ -6,7 +6,7 @@ import { Transcript } from "./components/Transcript";
 import { Composer } from "./components/Composer";
 import { DevPanel } from "./dev/DevPanel";
 import { useDevSettings } from "./dev/devSettings";
-import { createTalkSession, requestBrowserMic } from "./radio/ptt";
+import { createTalkHolds, createTalkSession, isTypingTarget, requestBrowserMic, TALK_CODE, talkNote } from "./radio/ptt";
 import { isTauri, useRadio } from "./radio/useRadio";
 import { isDemo } from "./radio/demo";
 
@@ -18,6 +18,21 @@ export default function App() {
   const [destination, setDestination] = useState("KJFK");
   const { sidebarOpen, micOnHold } = dev.settings;
   const talk = useRef(createTalkSession(requestBrowserMic));
+  const holds = useRef(createTalkHolds());
+  const [talking, setTalking] = useState(false);
+  const applyHold = (kind: "press" | "release" | "ignore") => {
+    if (kind === "ignore") return;
+    if (kind === "press") {
+      setTalking(true);
+      if (micOnHold) void talk.current.press();
+      return;
+    }
+    setTalking(false);
+    const text = talkNote(talk.current.release().outcome, micOnHold);
+    if (text) radio.note(text);
+  };
+  const applyRef = useRef(applyHold);
+  applyRef.current = applyHold;
 
   useEffect(() => {
     document.documentElement.classList.toggle("tauri", isTauri);
@@ -38,6 +53,29 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [dev, sidebarOpen]);
 
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== TALK_CODE || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as { tagName?: string; isContentEditable?: boolean } | null;
+      if (isTypingTarget(target)) return;
+      e.preventDefault();
+      applyRef.current(holds.current.keyDown());
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== TALK_CODE) return;
+      applyRef.current(holds.current.keyUp());
+    };
+    const blur = () => applyRef.current(holds.current.dropAll());
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+    };
+  }, []);
+
   return (
     <div className={`app ${sidebarOpen ? "" : "sidebar-closed"}`}>
       <TitleBar
@@ -56,24 +94,9 @@ export default function App() {
           showPhaseRail={dev.settings.showPhaseRail}
           showRadioStack={dev.settings.showRadioStack}
           onSwap={radio.swapCom1}
-          onTalkPressed={() => {
-            if (!micOnHold) return;
-            void talk.current.press();
-          }}
-          onTalkReleased={() => {
-            const end = talk.current.release();
-            if (!micOnHold && end.outcome === "idle") {
-              radio.note("Hold to talk is not opening the microphone. The switch is in the dev panel.");
-              return;
-            }
-            if (end.outcome === "discarded") {
-              radio.note(
-                "Speech recognition is not installed. The microphone was closed and nothing was saved. Type what you would say in the box below.",
-              );
-            } else if (end.outcome === "denied") {
-              radio.note("The microphone is not available. Type what you would say in the box below.");
-            }
-          }}
+          talking={talking}
+          onTalkPressed={() => applyRef.current(holds.current.pointerDown())}
+          onTalkReleased={() => applyRef.current(holds.current.pointerUp())}
         />
       )}
 

@@ -69,6 +69,73 @@ export function createTalkSession(requestMic: () => Promise<MicStream>) {
   };
 }
 
+/** The key left of 1 on a US keyboard. Insert belongs to Aurelia Voice and is not used. */
+export const TALK_CODE = "Backquote";
+
+export function isTypingTarget(target: { tagName?: string; isContentEditable?: boolean } | null): boolean {
+  if (!target?.tagName) return false;
+  const tag = target.tagName.toUpperCase();
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable === true;
+}
+
+/** The button and the focused-window key can be down together. The mic opens on the first and closes on the last. */
+export function createTalkHolds() {
+  let pointer = false;
+  let key = false;
+  const held = () => pointer || key;
+
+  const raise = (already: boolean, mark: () => void): "press" | "ignore" => {
+    const was = held();
+    if (already) return "ignore";
+    mark();
+    return was ? "ignore" : "press";
+  };
+
+  return {
+    held,
+    pointerDown(): "press" | "ignore" {
+      return raise(pointer, () => {
+        pointer = true;
+      });
+    },
+    pointerUp(): "release" | "ignore" {
+      if (!pointer) return "ignore";
+      pointer = false;
+      return held() ? "ignore" : "release";
+    },
+    keyDown(): "press" | "ignore" {
+      return raise(key, () => {
+        key = true;
+      });
+    },
+    keyUp(): "release" | "ignore" {
+      if (!key) return "ignore";
+      key = false;
+      return held() ? "ignore" : "release";
+    },
+    dropAll(): "release" | "ignore" {
+      const was = held();
+      pointer = false;
+      key = false;
+      return was ? "release" : "ignore";
+    },
+  };
+}
+
+export function talkNote(outcome: TalkEnd["outcome"], micOnHold: boolean): string | null {
+  if (!micOnHold && outcome === "idle") {
+    return "Hold to talk is not opening the microphone. The switch is in the dev panel.";
+  }
+  if (outcome === "discarded") {
+    return "Speech recognition is not installed. The microphone was closed and nothing was saved. Type what you would say in the box below.";
+  }
+  if (outcome === "denied") {
+    return "The microphone is not available. Type what you would say in the box below.";
+  }
+  return null;
+}
+
 export function requestBrowserMic(): Promise<MicStream> {
   const media = navigator.mediaDevices;
   if (!media?.getUserMedia) return Promise.reject(new Error("no microphone"));
