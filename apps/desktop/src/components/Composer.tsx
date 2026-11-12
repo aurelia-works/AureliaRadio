@@ -9,14 +9,14 @@ type Props = {
   correctReadback: () => Promise<string | null>;
 };
 
-/** Text stand-in for the voice loop until Phase 1: the same requests the pilot will later speak. */
+/** Typed stand-in for the microphone. The core classifies the line. */
 export function Composer({ callsign, destination, onCallsign, onDestination, send, correctReadback }: Props) {
   const [readback, setReadback] = useState("");
 
-  const sendReadback = async () => {
+  const sendUtterance = async () => {
     const text = readback.trim();
     if (!text) return;
-    await send("readback", { text }, text);
+    await send("submit_utterance", { text }, text);
     setReadback("");
   };
 
@@ -69,13 +69,13 @@ export function Composer({ callsign, destination, onCallsign, onDestination, sen
           id="readback"
           className="mono"
           value={readback}
-          placeholder="Type your readback, then press ⌘ Return"
+          placeholder="Type what you would say, then press ⌘ Return"
           spellCheck={false}
           onChange={(e) => setReadback(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              sendReadback();
+              sendUtterance();
             }
           }}
         />
@@ -83,8 +83,8 @@ export function Composer({ callsign, destination, onCallsign, onDestination, sen
           <button className="btn ghost" onClick={async () => setReadback((await correctReadback()) ?? readback)}>
             Fill correct readback
           </button>
-          <button className="btn primary" onClick={sendReadback} disabled={!readback.trim()}>
-            Send readback
+          <button className="btn primary" onClick={sendUtterance} disabled={!readback.trim()}>
+            Send
           </button>
         </div>
       </div>

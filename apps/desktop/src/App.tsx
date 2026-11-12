@@ -54,7 +54,9 @@ export default function App() {
           showPhaseRail={dev.settings.showPhaseRail}
           showRadioStack={dev.settings.showRadioStack}
           onSwap={radio.swapCom1}
-          onTalkReleased={() => radio.note("Push-to-talk arrives in Phase 1. Use the text requests below for now.")}
+          onTalkReleased={() =>
+            radio.note("The microphone is not connected. Type what you would say in the box below.")
+          }
         />
       )}
 

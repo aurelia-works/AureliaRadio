@@ -30,7 +30,6 @@ export const DEMO_LINES: [Role, string, boolean?][] = [
   ["atc", "N123AB, cleared to KJFK via radar vectors, then as filed, climb initially 10000 feet, squawk 5427. Departure frequency 124.800."],
   ["pilot", "N123AB cleared to KJFK via radar vectors, then as filed, climb 10000 feet, squawk 5472."],
   ["atc", "N123AB, negative, squawk 5427. Say again.", true],
-  ["system", "Readback rejected. Correct it and send again."],
   ["pilot", "N123AB cleared to KJFK via radar vectors, then as filed, climb 10000 feet, squawk 5427."],
   ["atc", "N123AB, contact ground 121.800."],
   ["pilot", "N123AB, request taxi."],
