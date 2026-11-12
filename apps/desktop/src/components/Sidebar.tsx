@@ -7,10 +7,11 @@ type Props = {
   showPhaseRail: boolean;
   showRadioStack: boolean;
   onSwap: () => void;
+  onTalkPressed: () => void;
   onTalkReleased: () => void;
 };
 
-export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTalkReleased }: Props) {
+export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTalkPressed, onTalkReleased }: Props) {
   const phaseKey = snapshot?.phase.toLowerCase() ?? "clearance";
   const active = Math.max(0, PHASES.findIndex(([id]) => id === phaseKey));
 
@@ -33,7 +34,9 @@ export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTal
         </section>
       )}
 
-      {showRadioStack && <RadioStack snapshot={snapshot} onSwap={onSwap} onTalkReleased={onTalkReleased} />}
+      {showRadioStack && (
+        <RadioStack snapshot={snapshot} onSwap={onSwap} onTalkPressed={onTalkPressed} onTalkReleased={onTalkReleased} />
+      )}
     </aside>
   );
 }
@@ -41,10 +44,12 @@ export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTal
 function RadioStack({
   snapshot,
   onSwap,
+  onTalkPressed,
   onTalkReleased,
 }: {
   snapshot: Snapshot | null;
   onSwap: () => void;
+  onTalkPressed: () => void;
   onTalkReleased: () => void;
 }) {
   const [tx, setTx] = useState(false);
@@ -78,7 +83,10 @@ function RadioStack({
       </div>
       <button
         className={`ptt ${tx ? "tx" : ""}`}
-        onPointerDown={() => setTx(true)}
+        onPointerDown={() => {
+          setTx(true);
+          onTalkPressed();
+        }}
         onPointerUp={release}
         onPointerLeave={release}
       >
