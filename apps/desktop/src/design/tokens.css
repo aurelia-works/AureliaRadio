@@ -1,0 +1,57 @@
+/*
+ * Design tokens. Same shape as CruiseControl's desktop/src/design/tokens.css, with Radio's own palette:
+ * a cool blue-black ground and beacon amber. Dark only. The dev panel overrides --accent, --log-size and
+ * --density at runtime; everything accent-tinted derives from --accent with color-mix, so one value repaints the app.
+ */
+:root {
+  /* Ground and surfaces */
+  --canvas: #0b0e13;
+  --sidebar-bg: #0f131a;
+  --surface: #12161d;
+  --elevated: #181d26;
+  --hover: #1e2430;
+  --border: #252c38;
+  --border-strong: #354052;
+
+  /* Text */
+  --text: #e8ecf2;
+  --muted: #93a0b2;
+  --faint: #67748a;
+
+  /* Accent (beacon amber) and its derived tints */
+  --accent: #f2b441;
+  --on-accent: #17120a;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
+  --accent-text: color-mix(in srgb, var(--accent) 70%, var(--text));
+
+  /* Semantic */
+  --green: #7fd6a0;
+  --green-soft: color-mix(in srgb, var(--green) 14%, transparent);
+  --warn: #f0a56b;
+  --red: #f0707f;
+  --red-soft: color-mix(in srgb, var(--red) 16%, transparent);
+  --pilot: #8fb8ff;
+  --pilot-soft: color-mix(in srgb, var(--pilot) 10%, transparent);
+
+  /* Type */
+  --font-body: Inter, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-display: "SF Pro Display", -apple-system, Inter, system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --font-size: 13px;
+  --log-size: 14px;
+
+  /* Spacing (density scales these) */
+  --density: 1;
+  --pad: calc(20px * var(--density));
+  --gap: calc(12px * var(--density));
+  --row-pad: calc(10px * var(--density));
+  --radius: 10px;
+  --radius-sm: 7px;
+
+  --sidebar-width: 280px;
+  --titlebar: 52px; /* clears the overlay traffic lights (tauri.conf.json trafficLightPosition) */
+  --transition: 120ms;
+
+  color-scheme: dark;
+}

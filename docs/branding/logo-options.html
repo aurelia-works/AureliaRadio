@@ -1,0 +1,337 @@
+<title>Aurelia Radio Check-in</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column of check-in cards; the logo card is a four-up contact sheet, like a flight strip bay. Single dark look on purpose: the marks are judged on the app's own ground. */
+:root {
+  color-scheme: dark;
+  --bg: #0B0E13;
+  --panel: #12161D;
+  --panel-2: #181D26;
+  --line: #252C38;
+  --text: #E8ECF2;
+  --muted: #93A0B2;
+  --ink: #EEF2F7;
+  --tile-a: #1B212C;
+  --tile-b: #0D1117;
+  --accent: #F2B441;
+  --on-accent: #17120A;
+  --good: #7FD6A0;
+  --warn: #F0A56B;
+  --display: "Space Grotesk", "Avenir Next", system-ui, sans-serif;
+  --body: Inter, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+body[data-accent="amber"] { --accent: #F2B441; --on-accent: #17120A; }
+body[data-accent="teal"]  { --accent: #4FD8C4; --on-accent: #06211D; }
+body[data-accent="sky"]   { --accent: #6FB3FF; --on-accent: #07182B; }
+body[data-accent="green"] { --accent: #8BE28F; --on-accent: #0A200C; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.55 var(--body);
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 22px; }
+header h1 { font: 700 30px/1.15 var(--display); margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 65ch; }
+.eyebrow { font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.card h2 { font: 600 19px/1.25 var(--display); margin: 0; letter-spacing: -0.01em; }
+.card .what { margin: 0; color: var(--muted); max-width: 70ch; }
+.card .what b { color: var(--text); font-weight: 600; }
+.status { font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.status.done { color: var(--good); }
+.head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+
+.sheet { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.opt { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; justify-items: start; min-width: 0; }
+.opt.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.opt h3 { font: 600 15px/1.2 var(--display); margin: 0; }
+.opt h3 span { font: 500 11px/1 var(--mono); color: var(--accent); margin-right: 8px; letter-spacing: 0.08em; }
+.opt p { margin: 0; color: var(--muted); font-size: 13px; }
+.tile {
+  width: 132px; height: 132px; border-radius: 30px; display: grid; place-items: center;
+  background: radial-gradient(120% 90% at 50% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), linear-gradient(var(--tile-a), var(--tile-b));
+  border: 1px solid rgba(255,255,255,0.09);
+}
+.tile svg { width: 82px; height: 82px; }
+.sizes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sizes .mini { display: grid; place-items: center; background: linear-gradient(var(--tile-a), var(--tile-b)); border: 1px solid rgba(255,255,255,0.09); }
+.mini.s48 { width: 48px; height: 48px; border-radius: 11px; } .mini.s48 svg { width: 30px; height: 30px; }
+.mini.s24 { width: 24px; height: 24px; border-radius: 6px; }  .mini.s24 svg { width: 16px; height: 16px; }
+.mini.s16 { width: 16px; height: 16px; border-radius: 4px; }  .mini.s16 svg { width: 11px; height: 11px; }
+.mini.light { --ink: #131821; background: #EEF1F5; border-color: #D5DBE3; width: 48px; height: 48px; border-radius: 11px; }
+.mini.light svg { width: 30px; height: 30px; }
+.lockup { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); max-width: 100%; }
+.lockup svg { width: 26px; height: 26px; flex: none; }
+.lockup b { font: 600 14px/1.1 var(--display); letter-spacing: -0.01em; display: block; }
+.lockup small { font: 500 10.5px/1.2 var(--mono); color: var(--muted); }
+
+/* mark paint */
+.ink-s { stroke: var(--ink); fill: none; } .ink-f { fill: var(--ink); }
+.acc-s { stroke: var(--accent); fill: none; } .acc-f { fill: var(--accent); }
+
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 500 13.5px/1.2 var(--body); color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; cursor: pointer; }
+button:hover { border-color: #3A4556; }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+button:disabled { opacity: 0.45; cursor: default; }
+.swatch { display: inline-flex; align-items: center; gap: 8px; }
+.swatch i { width: 14px; height: 14px; border-radius: 50%; background: var(--sw); border: 1px solid rgba(0,0,0,0.35); }
+textarea { width: 100%; min-height: 58px; resize: vertical; font: 14px/1.45 var(--body); color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+label.note { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 10.5px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+ul.flags { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 5px; max-width: 75ch; }
+ul.flags b { color: var(--text); font-weight: 600; }
+
+.send { border-color: var(--accent); }
+.send .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.send button.go { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; padding: 11px 16px; }
+#summary { margin: 0; white-space: pre-wrap; font: 500 12.5px/1.5 var(--mono); color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; user-select: all; }
+#msg { font-size: 13px; color: var(--muted); }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="m-tower" viewBox="0 0 100 100">
+    <g stroke-linecap="round" stroke-width="4.5" class="acc-s">
+      <path d="M56.89 18.21A9 9 0 0 1 56.89 29.79"/><path d="M43.11 18.21A9 9 0 0 0 43.11 29.79"/>
+      <path d="M63.02 13.07A17 17 0 0 1 63.02 34.93"/><path d="M36.98 13.07A17 17 0 0 0 36.98 34.93"/>
+    </g>
+    <circle cx="50" cy="24" r="3.6" class="acc-f"/>
+    <path d="M50 30V41" class="ink-s" stroke-width="4" stroke-linecap="round"/>
+    <path d="M36 42H64" class="ink-s" stroke-width="5" stroke-linecap="round"/>
+    <path class="ink-f" fill-rule="evenodd" d="M33 47H67L61 62H39ZM37.8 51L39.6 55.5H60.4L62.2 51Z"/>
+    <path class="ink-f" d="M45.5 66H54.5L58 90H42Z"/>
+  </symbol>
+  <symbol id="m-carrier" viewBox="0 0 100 100">
+    <path d="M22 84L50 16L78 84" class="ink-s" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M33 63H41L45.5 51L51 74L55.5 57L58.5 63H67" class="acc-s" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="m-scope" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="36" class="ink-s" stroke-width="6"/>
+    <circle cx="50" cy="50" r="19" class="ink-s" stroke-width="3" opacity="0.35"/>
+    <path d="M50 50V17A33 33 0 0 1 79.9 36.05Z" class="acc-f" opacity="0.3"/>
+    <path d="M50 50L78.5 36.7" class="acc-s" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="34" cy="61" r="4.6" class="acc-f"/>
+    <circle cx="50" cy="50" r="4.2" class="ink-f"/>
+  </symbol>
+  <symbol id="m-headset" viewBox="0 0 100 100">
+    <path d="M22 50A28 28 0 0 1 78 50" class="ink-s" stroke-width="8" stroke-linecap="round"/>
+    <rect x="14" y="46" width="15" height="26" rx="6" class="ink-f"/>
+    <rect x="71" y="46" width="15" height="26" rx="6" class="ink-f"/>
+    <path d="M21.5 73Q21.5 83 36 83H44" class="acc-s" stroke-width="5" stroke-linecap="round"/>
+    <rect x="44" y="78" width="17" height="10" rx="5" class="acc-f"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Aurelia Radio · check-in · 2026-11-11</div>
+    <h1>Pick a mark, an accent, and say go on the plan</h1>
+    <p>Three things are waiting on you. Tap an answer on each card, add a note if you like, then press Send at the bottom. The current app icon is the old Aurelia Voice microphone; whichever mark you pick replaces it everywhere.</p>
+  </header>
+
+  <section class="card" data-card="logo" data-title="Logo">
+    <div class="head"><h2>1. New logo</h2><span class="status">Waiting on you</span></div>
+    <p class="what">Four original marks, drawn as SVG. None reuse the Voice microphone or the CruiseControl gauge. Each is shown as the app icon, at 48 / 24 / 16 px, on a light background, and beside the name as it would sit in the sidebar. <b>Look at the 16 px one:</b> that is the menu bar and the X-Plane plugin list.</p>
+    <div class="sheet">
+      <div class="opt" data-opt="A">
+        <h3><span>A</span>Tower</h3>
+        <div class="tile"><svg><use href="#m-tower"/></svg></div>
+        <div class="sizes"><div class="mini s48"><svg><use href="#m-tower"/></svg></div><div class="mini s24"><svg><use href="#m-tower"/></svg></div><div class="mini s16"><svg><use href="#m-tower"/></svg></div><div class="mini light"><svg><use href="#m-tower"/></svg></div></div>
+        <div class="lockup"><svg><use href="#m-tower"/></svg><div><b>Aurelia Radio</b><small>KMCO TWR 124.300</small></div></div>
+        <p>A control tower cab with a transmitting antenna. Says "ATC" the fastest; the thinnest at 16 px.</p>
+        <button data-choice="A">Pick A</button>
+      </div>
+      <div class="opt" data-opt="B">
+        <h3><span>B</span>Carrier</h3>
+        <div class="tile"><svg><use href="#m-carrier"/></svg></div>
+        <div class="sizes"><div class="mini s48"><svg><use href="#m-carrier"/></svg></div><div class="mini s24"><svg><use href="#m-carrier"/></svg></div><div class="mini s16"><svg><use href="#m-carrier"/></svg></div><div class="mini light"><svg><use href="#m-carrier"/></svg></div></div>
+        <div class="lockup"><svg><use href="#m-carrier"/></svg><div><b>Aurelia Radio</b><small>KMCO TWR 124.300</small></div></div>
+        <p>An A for Aurelia whose crossbar is a voice transmission. Holds up best small; ties to the family name.</p>
+        <button data-choice="B">Pick B</button>
+      </div>
+      <div class="opt" data-opt="C">
+        <h3><span>C</span>Scope</h3>
+        <div class="tile"><svg><use href="#m-scope"/></svg></div>
+        <div class="sizes"><div class="mini s48"><svg><use href="#m-scope"/></svg></div><div class="mini s24"><svg><use href="#m-scope"/></svg></div><div class="mini s16"><svg><use href="#m-scope"/></svg></div><div class="mini light"><svg><use href="#m-scope"/></svg></div></div>
+        <div class="lockup"><svg><use href="#m-scope"/></svg><div><b>Aurelia Radio</b><small>KMCO TWR 124.300</small></div></div>
+        <p>A radar scope with the sweep and one target. Fits the traffic and sequencing phases; reads as "radar" more than "radio".</p>
+        <button data-choice="C">Pick C</button>
+      </div>
+      <div class="opt" data-opt="D">
+        <h3><span>D</span>Headset</h3>
+        <div class="tile"><svg><use href="#m-headset"/></svg></div>
+        <div class="sizes"><div class="mini s48"><svg><use href="#m-headset"/></svg></div><div class="mini s24"><svg><use href="#m-headset"/></svg></div><div class="mini s16"><svg><use href="#m-headset"/></svg></div><div class="mini light"><svg><use href="#m-headset"/></svg></div></div>
+        <div class="lockup"><svg><use href="#m-headset"/></svg><div><b>Aurelia Radio</b><small>KMCO TWR 124.300</small></div></div>
+        <p>A pilot headset with the boom mic lit. The pilot's side of the radio; friendly, less technical.</p>
+        <button data-choice="D">Pick D</button>
+      </div>
+    </div>
+    <div class="choices"><button data-choice="redo">None of these, draw four more</button></div>
+    <label class="note" for="note-logo">Note (mix two, change a detail, anything)<textarea id="note-logo"></textarea></label>
+  </section>
+
+  <section class="card" data-card="accent" data-title="Accent colour">
+    <div class="head"><h2>2. Accent colour</h2><span class="status">Waiting on you</span></div>
+    <p class="what">Tap a colour and every mark above repaints. The app moves off the Voice/CruiseControl purple so Radio has its own look. It will also sit on the dev panel as a colour picker, so this only sets the default.</p>
+    <div class="choices">
+      <button class="swatch" data-choice="amber" style="--sw:#F2B441"><i></i>Beacon amber</button>
+      <button class="swatch" data-choice="teal" style="--sw:#4FD8C4"><i></i>Signal teal</button>
+      <button class="swatch" data-choice="sky" style="--sw:#6FB3FF"><i></i>Sky blue</button>
+      <button class="swatch" data-choice="green" style="--sw:#8BE28F"><i></i>Scope green</button>
+    </div>
+    <label class="note" for="note-accent">Note<textarea id="note-accent"></textarea></label>
+  </section>
+
+  <section class="card" data-card="plan" data-title="Phase plan">
+    <div class="head"><h2>3. Phase plan (PLAN.md)</h2><span class="status">Waiting on you</span></div>
+    <p class="what">Phases 1 to 7 from the roadmap, split so each fits one thread, with a polish phase first. Times are agent time. Nothing is built until you approve; each phase stops for your check before the next.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Phase</th><th>What you get</th><th>Agent time</th><th>Tokens</th><th>Model</th></tr></thead>
+      <tbody>
+        <tr><td>P0.5</td><td>New logo and icons everywhere, own colour tokens, polished console, dev panel for looks</td><td class="num">40–60 min</td><td class="num">200–350k</td><td>Sonnet</td></tr>
+        <tr><td>P1a</td><td>Hold-to-talk, local speech-to-text, 20 scripted calls scored</td><td class="num">60–90 min</td><td class="num">350–550k</td><td>Sonnet</td></tr>
+        <tr><td>P1b</td><td>Controller speaks back with radio effect; latency and memory measured</td><td class="num">45–75 min</td><td class="num">250–450k</td><td>Sonnet</td></tr>
+        <tr><td>P2a</td><td>Taxi routes computed from apt.dat, runway assignment</td><td class="num">60–90 min</td><td class="num">350–550k</td><td>Opus</td></tr>
+        <tr><td>P2b</td><td>Ground and tower flow, hold-short, handoffs, error recovery</td><td class="num">45–75 min</td><td class="num">300–450k</td><td>Sonnet</td></tr>
+        <tr><td>P3a</td><td>CIFP parser, SID/STAR, real route clearance</td><td class="num">60–90 min</td><td class="num">400–600k</td><td>Opus</td></tr>
+        <tr><td>P3b</td><td>Departure, centre, descent, approach, ILS vectors; 10 scripted flights</td><td class="num">75–120 min</td><td class="num">500–800k</td><td>Opus</td></tr>
+        <tr><td>P4</td><td>Up to 20 visible AI aircraft from a seeded timetable</td><td class="num">60–90 min</td><td class="num">350–550k</td><td>Sonnet</td></tr>
+        <tr><td>P5</td><td>Runway slots, spacing, go-arounds, replay from a seed</td><td class="num">75–120 min</td><td class="num">500–800k</td><td>Opus</td></tr>
+        <tr><td>P6</td><td>Voice co-pilot: COM, squawk, autopilot, confirmed and undoable</td><td class="num">45–75 min</td><td class="num">300–450k</td><td>Sonnet</td></tr>
+        <tr><td>P7</td><td>Windows and XP12 builds, installer, crash recovery</td><td class="num">60–90 min</td><td class="num">350–550k</td><td>Sonnet</td></tr>
+        <tr><td>Total</td><td>11 threads</td><td class="num">about 10–16 h</td><td class="num">3.9–6.1M</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <ul class="flags">
+      <li><b>You fly the gates.</b> I can't launch X-Plane. Each phase ends with scripted tests I run, then a short list for you to fly. Phase 0's in-sim gate (plugin loads, COM1 changes the sim) is still unconfirmed.</li>
+      <li><b>Second airport.</b> The Phase 2 gate asks for one, but AGENTS.md rule 8 says KMCO's full flow first. The plan moves the second airport to the end of Phase 3.</li>
+      <li><b>Windows.</b> Phase 7 can be built and tested on a GitHub Windows runner, but "clean install on Windows 11" needs a real PC, yours or a friend's.</li>
+      <li><b>Voice models.</b> Phase 1 downloads a speech model (about 75–150 MB). It stays out of git.</li>
+    </ul>
+    <div class="choices">
+      <button data-choice="approve">Approve, start P0.5</button>
+      <button data-choice="change">Change something (see note)</button>
+      <button data-choice="unread">Not read yet</button>
+    </div>
+    <label class="note" for="note-plan">Note<textarea id="note-plan"></textarea></label>
+  </section>
+
+  <section class="card send" id="sendcard">
+    <div class="head"><h2>Send answers to Claude</h2><span class="status" id="savestate">Loading saved answers…</span></div>
+    <pre id="summary">No answers yet.</pre>
+    <div class="row"><button class="go" id="send" disabled>Send answers to Claude</button><span id="msg"></span></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var state = {}, db = null, comments = null;
+  var $ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var cards = $('[data-card]');
+  var saveEl = document.getElementById('savestate'), msg = document.getElementById('msg');
+  var sendBtn = document.getElementById('send'), sumEl = document.getElementById('summary');
+
+  function summary() {
+    var lines = cards.map(function (c) {
+      var a = state[c.dataset.card];
+      if (!a || (!a.choice && !a.note)) return null;
+      return c.dataset.title + ': ' + (a.choice || 'no choice') + (a.note ? ' | note: ' + a.note : '');
+    }).filter(Boolean);
+    return lines.length ? 'Check-in answers (Aurelia Radio)\n' + lines.join('\n') : '';
+  }
+
+  function paint() {
+    cards.forEach(function (c) {
+      var a = state[c.dataset.card] || {};
+      $('[data-choice]', c).forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.choice === a.choice)); });
+      $('.opt', c).forEach(function (o) { o.classList.toggle('picked', o.dataset.opt === a.choice); });
+      var t = c.querySelector('textarea');
+      if (t && document.activeElement !== t && typeof a.note === 'string') t.value = a.note;
+      var s = c.querySelector('.status');
+      if (s) { s.textContent = a.choice ? 'Answered' : 'Waiting on you'; s.classList.toggle('done', !!a.choice); }
+    });
+    var acc = state.accent && state.accent.choice;
+    if (acc) document.body.dataset.accent = acc;
+    var text = summary();
+    sumEl.textContent = text || 'No answers yet.';
+    sendBtn.disabled = !text || !comments;
+  }
+
+  function save(id) {
+    paint();
+    if (!db) { saveEl.textContent = 'Not saved (sign in to keep answers)'; return; }
+    saveEl.textContent = 'Saving…';
+    db.doc('answers/' + id).set(state[id]).then(
+      function () { saveEl.textContent = 'Saved'; },
+      function () { saveEl.textContent = 'Could not save. Your answers are still in the summary below.'; }
+    );
+  }
+
+  cards.forEach(function (c) {
+    var id = c.dataset.card;
+    $('[data-choice]', c).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var a = state[id] || {};
+        state[id] = { choice: b.dataset.choice, note: a.note || '', at: Date.now() };
+        save(id);
+      });
+    });
+    var t = c.querySelector('textarea');
+    if (t) t.addEventListener('change', function () {
+      var a = state[id] || {};
+      state[id] = { choice: a.choice || '', note: t.value.trim(), at: Date.now() };
+      save(id);
+    });
+  });
+
+  sendBtn.addEventListener('click', function () {
+    var text = summary();
+    if (!text || !comments) return;
+    sendBtn.disabled = true; msg.textContent = 'Sending…';
+    comments.anchorFor(document.getElementById('sendcard'))
+      .then(function (anchor) { return comments.sendToClaude({ anchor: anchor, text: text }); })
+      .then(function () { msg.textContent = 'Sent. Claude will pick it up.'; },
+            function (e) { msg.textContent = 'Could not send (' + ((e && e.code) || 'error') + '). Copy the summary above into the chat instead.'; })
+      .then(function () { sendBtn.disabled = false; });
+  });
+
+  paint();
+  var claude = window.claude;
+  if (!claude || !claude.use) { saveEl.textContent = 'Preview: answers are not saved here'; msg.textContent = 'Open the published page to send answers.'; return; }
+
+  var timer = setTimeout(function () { if (!db) saveEl.textContent = 'Saved answers did not load. You can still answer.'; }, 10000);
+  claude.use('db').then(function (d) {
+    clearTimeout(timer);
+    if (!d) { saveEl.textContent = 'Not saved (sign in to keep answers)'; return; }
+    db = d;
+    return d.collection('answers').get().then(function (snap) {
+      snap.docs.forEach(function (doc) { var v = doc.data(); if (v && !state[doc.id]) state[doc.id] = v; });
+      saveEl.textContent = 'Saved answers loaded';
+      paint();
+    });
+  }).catch(function () { clearTimeout(timer); saveEl.textContent = 'Saved answers did not load. You can still answer.'; });
+
+  claude.use('comments').then(function (c) {
+    if (!c) { msg.textContent = 'Sending is not available in this view. Copy the summary into the chat.'; return; }
+    return c.canSendToClaude().then(function (s) {
+      if (s === 'available') { comments = c; paint(); }
+      else msg.textContent = s === 'no_session' ? 'No Claude session is listening. Copy the summary into the chat.' : 'Sending is off here. Copy the summary into the chat.';
+    });
+  }).catch(function () { msg.textContent = 'Sending is not available in this view. Copy the summary into the chat.'; });
+})();
+</script>
