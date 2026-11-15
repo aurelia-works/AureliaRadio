@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 
 /**
  * Square halftone field behind the selected sidebar row, ported from CruiseControl's ui/NavDither.tsx.
- * Cells are 8 CSS px. When `pulseKey` changes the field steps through 25 frames over one second, then
- * settles on frame 0. Motion stops under prefers-reduced-motion or while the page is hidden. Nothing runs
+ * Cells are 8 CSS px. Mounted with `pulse` (the phase just changed), the field steps through 25 frames
+ * over one second, then settles on frame 0. Motion stops under prefers-reduced-motion or while the page is hidden. Nothing runs
  * when idle. Unlike the original, the colour is a prop, so a dev-panel accent change repaints it.
  */
 const FRAME_COUNT = 25;
@@ -49,17 +49,16 @@ function drawFrame(c: HTMLCanvasElement, frame: number, color: string): void {
   }
 }
 
-export function NavDither({ color, pulseKey }: { color: string; pulseKey: string }) {
+export function NavDither({ color, pulse }: { color: string; pulse: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const lastKey = useRef<string | null>(null);
+  // Pulse once per mount; a finished pulse is not replayed when the accent changes.
+  const pending = useRef(pulse);
 
   useEffect(() => {
     const c = ref.current;
     const host = c?.parentElement;
     if (!c || !host) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const pulse = lastKey.current !== null && lastKey.current !== pulseKey;
-    lastKey.current = pulseKey;
     let raf = 0;
     let start = 0;
     let frame = 0;
@@ -81,7 +80,10 @@ export function NavDither({ color, pulseKey }: { color: string; pulseKey: string
       if (!motionAllowed()) return stop();
       if (!start) start = now;
       const elapsed = now - start;
-      if (elapsed >= PULSE_MS) return stop();
+      if (elapsed >= PULSE_MS) {
+        pending.current = false;
+        return stop();
+      }
       frame = Math.min(FRAME_COUNT - 1, Math.floor((elapsed * (FRAME_COUNT - 1)) / PULSE_MS));
       drawFrame(c, frame, color);
       raf = requestAnimationFrame(tick);
@@ -89,7 +91,7 @@ export function NavDither({ color, pulseKey }: { color: string; pulseKey: string
 
     size();
     drawFrame(c, 0, color);
-    if (pulse && motionAllowed()) raf = requestAnimationFrame(tick);
+    if (pending.current && motionAllowed()) raf = requestAnimationFrame(tick);
 
     const ro = new ResizeObserver(() => {
       size();
@@ -110,7 +112,7 @@ export function NavDither({ color, pulseKey }: { color: string; pulseKey: string
       document.removeEventListener("visibilitychange", onVisibility);
       reduce.removeEventListener("change", onMotion);
     };
-  }, [color, pulseKey]);
+  }, [color]);
 
   return <canvas ref={ref} className="nav-dither" aria-hidden="true" />;
 }

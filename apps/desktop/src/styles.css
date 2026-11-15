@@ -63,7 +63,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 .traffic-space { width: 8px; flex: none; height: 100%; }
-html.tauri .traffic-space { width: 72px; }
+html.tauri .traffic-space { width: 78px; }
 .titlebar-end { margin-left: auto; }
 
 .wordmark { display: flex; align-items: center; gap: 0; font-size: 17px; line-height: 1; white-space: nowrap; }
@@ -364,6 +364,13 @@ input[type="color"] { width: 26px; height: 26px; padding: 0; border: 1px solid v
   .radio-card .small { display: none; }
   .readback { grid-template-columns: 1fr; }
   .readback-actions { flex-direction: row; }
+}
+
+@media (max-height: 760px) {
+  .page { --page-padding: 20px; }
+  .page-body { min-height: 200px; }
+  .readback textarea { min-height: 60px; }
+  .radio-card .small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

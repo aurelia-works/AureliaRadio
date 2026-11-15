@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { PHASES, type Snapshot } from "../radio/types";
 import { CheckIcon } from "../ui/icons";
 import { NavDither } from "../ui/NavDither";
@@ -14,6 +15,12 @@ type Props = {
 export function Sidebar({ snapshot, airport, showPhaseRail, dither, accent }: Props) {
   const phaseKey = snapshot?.phase.toLowerCase() ?? "clearance";
   const active = Math.max(0, PHASES.findIndex(([id]) => id === phaseKey));
+  const activeId = PHASES[active][0];
+  const shown = useRef<string | null>(null);
+  const changed = shown.current !== null && shown.current !== activeId;
+  useEffect(() => {
+    shown.current = activeId;
+  }, [activeId]);
 
   return (
     <aside className="sidebar">
@@ -25,7 +32,7 @@ export function Sidebar({ snapshot, airport, showPhaseRail, dither, accent }: Pr
               const state = index === active ? "is-active" : index < active ? "is-done" : "is-next";
               return (
                 <li key={id} className={`phase-item ${state}`} aria-current={state === "is-active" ? "step" : undefined}>
-                  {state === "is-active" && dither && <NavDither color={accent} pulseKey={id} />}
+                  {state === "is-active" && dither && <NavDither color={accent} pulse={changed} />}
                   <span className="phase-icon">{state === "is-done" ? <CheckIcon /> : index + 1}</span>
                   <span className="phase-label">{label}</span>
                 </li>
