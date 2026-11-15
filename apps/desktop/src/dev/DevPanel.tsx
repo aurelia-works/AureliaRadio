@@ -8,7 +8,7 @@ type Props = {
   onClose: () => void;
 };
 
-/** Looks only. Nothing here changes what the controller says or does. */
+/** Looks, and whether hold-to-talk opens the microphone. Nothing here changes what the controller says. */
 export function DevPanel({ settings, update, reset, onClose }: Props) {
   return (
     <aside className="dev-panel" aria-label="Dev panel">
@@ -76,6 +76,7 @@ export function DevPanel({ settings, update, reset, onClose }: Props) {
       <Toggle id="dev-phases" label="Phase rail" on={settings.showPhaseRail} set={(v) => update({ showPhaseRail: v })} />
       <Toggle id="dev-radio" label="Radio stack" on={settings.showRadioStack} set={(v) => update({ showRadioStack: v })} />
       <Toggle id="dev-sidebar" label="Sidebar" on={settings.sidebarOpen} set={(v) => update({ sidebarOpen: v })} />
+      <Toggle id="dev-mic" label="Microphone on hold" on={settings.micOnHold} set={(v) => update({ micOnHold: v })} />
 
       <button className="btn ghost" onClick={reset}>
         Reset to defaults

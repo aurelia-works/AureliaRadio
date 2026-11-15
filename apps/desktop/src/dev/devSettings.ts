@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-/** Looks Jah tweaks from the dev panel (⌘.). Stored per machine in localStorage; never sent to the core. */
+/** Settings from the dev panel (⌘.). Stored per machine in localStorage; never sent to the core. */
 export type DevSettings = {
   accent: string;
   density: number; // 0.8 compact … 1.2 roomy
@@ -8,6 +8,7 @@ export type DevSettings = {
   showRadioStack: boolean;
   showPhaseRail: boolean;
   sidebarOpen: boolean;
+  micOnHold: boolean;
 };
 
 export const ACCENT_PRESETS: [string, string][] = [
@@ -24,6 +25,7 @@ export const DEFAULTS: DevSettings = {
   showRadioStack: true,
   showPhaseRail: true,
   sidebarOpen: true,
+  micOnHold: true,
 };
 
 const KEY = "aurelia-radio.dev.v1";

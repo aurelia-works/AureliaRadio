@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "test": "node --experimental-strip-types --test src/radio/ptt.test.ts",
+    "build": "npm test && tsc --noEmit && vite build",
     "tauri": "tauri",
     "app:dev": "tauri dev",
     "app:build": "tauri build"
