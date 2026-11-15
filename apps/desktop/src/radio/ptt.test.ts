@@ -5,6 +5,7 @@ import {
   createTalkSession,
   isTypingTarget,
   joystickPressed,
+  SPEECH_MODEL_FILE,
   TALK_CODE,
   talkEdge,
   talkNote,
@@ -155,6 +156,15 @@ test("an idle release with the microphone switch off has a note", () => {
   assert.match(talkNote("idle", false) ?? "", /dev panel/);
   assert.equal(talkNote("cancelled", true), null);
   assert.match(talkNote("discarded", true) ?? "", /not installed/);
+});
+
+test("a model file on disk still says recognition is not running", () => {
+  assert.equal(SPEECH_MODEL_FILE, "ggml-tiny.en.bin");
+  assert.match(talkNote("discarded", true, "missing") ?? "", /not installed/);
+  const present = talkNote("discarded", true, "present") ?? "";
+  assert.match(present, /on disk/);
+  assert.match(present, /not running/);
+  assert.doesNotMatch(present, /not installed/);
 });
 
 test("a denial that arrives after release does not stick", async () => {

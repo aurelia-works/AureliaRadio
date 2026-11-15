@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { TitleBar } from "./components/TitleBar";
 import { Sidebar } from "./components/Sidebar";
 import { StripHeader } from "./components/StripHeader";
@@ -15,6 +16,7 @@ import {
   TALK_CODE,
   talkEdge,
   talkNote,
+  type SpeechModelSlot,
 } from "./radio/ptt";
 import { isTauri, useRadio } from "./radio/useRadio";
 import { isDemo } from "./radio/demo";
@@ -29,6 +31,7 @@ export default function App() {
   const talk = useRef(createTalkSession(requestBrowserMic));
   const holds = useRef(createTalkHolds());
   const [talking, setTalking] = useState(false);
+  const [speechModel, setSpeechModel] = useState<SpeechModelSlot>("missing");
   const applyHold = (kind: "press" | "release" | "ignore") => {
     if (kind === "ignore") return;
     if (kind === "press") {
@@ -37,7 +40,7 @@ export default function App() {
       return;
     }
     setTalking(false);
-    const text = talkNote(talk.current.release().outcome, micOnHold);
+    const text = talkNote(talk.current.release().outcome, micOnHold, speechModel);
     if (text) radio.note(text);
   };
   const applyRef = useRef(applyHold);
@@ -57,6 +60,21 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("tauri", isTauri);
+  }, []);
+
+  useEffect(() => {
+    if (!isTauri) return;
+    let live = true;
+    invoke<{ installed: boolean }>("speech_model")
+      .then((found) => {
+        if (live) setSpeechModel(found.installed ? "present" : "missing");
+      })
+      .catch(() => {
+        if (live) setSpeechModel("missing");
+      });
+    return () => {
+      live = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -187,7 +205,7 @@ export default function App() {
         />
       </main>
 
-      {devOpen && <DevPanel {...dev} onClose={() => setDevOpen(false)} />}
+      {devOpen && <DevPanel {...dev} speechModel={speechModel} onClose={() => setDevOpen(false)} />}
     </div>
   );
 }

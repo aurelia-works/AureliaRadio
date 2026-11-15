@@ -1,15 +1,17 @@
 import { ACCENT_PRESETS, type DevSettings } from "./devSettings";
+import { SPEECH_MODEL_FILE, type SpeechModelSlot } from "../radio/ptt";
 import { CloseIcon } from "../ui/icons";
 
 type Props = {
   settings: DevSettings;
   update: (patch: Partial<DevSettings>) => void;
   reset: () => void;
+  speechModel: SpeechModelSlot;
   onClose: () => void;
 };
 
-/** Looks, and whether hold-to-talk opens the microphone. Nothing here changes what the controller says. */
-export function DevPanel({ settings, update, reset, onClose }: Props) {
+/** Looks, whether hold-to-talk opens the microphone, and whether the speech model file is on disk. Nothing here changes what the controller says. */
+export function DevPanel({ settings, update, reset, speechModel, onClose }: Props) {
   return (
     <aside className="dev-panel" aria-label="Dev panel">
       <header>
@@ -92,6 +94,19 @@ export function DevPanel({ settings, update, reset, onClose }: Props) {
           onChange={(e) => update({ joystickButton: Number(e.target.value) })}
         />
       </label>
+
+      <div className="dev-group">
+        <span className="dev-label">
+          Speech model
+          <output className="mono" id="dev-speech-model">
+            {speechModel === "present" ? "file found" : "not installed"}
+          </output>
+        </span>
+        <p className="tiny">
+          Looks for <span className="mono">{SPEECH_MODEL_FILE}</span> under Application Support. Recognition does not
+          run yet.
+        </p>
+      </div>
 
       <button className="btn ghost" onClick={reset}>
         Reset to defaults

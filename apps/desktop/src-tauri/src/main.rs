@@ -3,12 +3,14 @@
 use radio_core::{Controller, ControllerResponse, FrequencyKind, Phase, PilotRequest};
 use serde::{Deserialize, Serialize};
 use std::net::UdpSocket;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::State;
+use tauri::{Manager, State};
 
 const TELEMETRY_STALE: Duration = Duration::from_secs(2);
 const PLUGIN_COMMAND_ADDR: &str = "127.0.0.1:49021";
+const SPEECH_MODEL_FILE: &str = "ggml-tiny.en.bin";
 
 #[derive(Debug, Clone, Default, Deserialize)]
 struct Telemetry {
@@ -258,6 +260,27 @@ fn swap_com1() {
     send_to_plugin("{\"cmd\":\"swap_com1\"}".to_string());
 }
 
+#[derive(Serialize)]
+struct SpeechModel {
+    installed: bool,
+}
+
+/// True only when `models/ggml-tiny.en.bin` is a file under the app data directory.
+/// Does not create that directory and does not read the file.
+fn speech_model_installed(app_data: &Path) -> bool {
+    app_data.join("models").join(SPEECH_MODEL_FILE).is_file()
+}
+
+#[tauri::command]
+fn speech_model(app: tauri::AppHandle) -> SpeechModel {
+    let installed = app
+        .path()
+        .app_data_dir()
+        .map(|dir| speech_model_installed(&dir))
+        .unwrap_or(false);
+    SpeechModel { installed }
+}
+
 fn main() {
     let telemetry = Arc::new(Mutex::new(None));
     let last_seen = Arc::new(Mutex::new(None));
@@ -280,8 +303,39 @@ fn main() {
             request_departure,
             set_com1,
             set_standby,
-            swap_com1
+            swap_com1,
+            speech_model
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aurelia Radio");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::speech_model_installed;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn a_missing_weights_file_is_not_installed() {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("aurelia-radio-model-{stamp}"));
+        assert!(!speech_model_installed(&root));
+        assert!(
+            !root.exists(),
+            "the lookup must not create the app data directory"
+        );
+        fs::create_dir_all(root.join("models")).expect("models dir");
+        assert!(!speech_model_installed(&root));
+        let weights = root.join("models").join(super::SPEECH_MODEL_FILE);
+        fs::write(&weights, b"not a model").expect("weights");
+        assert!(speech_model_installed(&root));
+        fs::remove_file(&weights).expect("remove weights");
+        fs::create_dir(&weights).expect("weights name as a directory");
+        assert!(!speech_model_installed(&root));
+        fs::remove_dir_all(&root).expect("cleanup");
+    }
 }

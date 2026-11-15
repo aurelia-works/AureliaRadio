@@ -1,8 +1,13 @@
 /** Hold-to-talk microphone session.
  *
- * Samples are not buffered. Speech recognition is not installed, so a hold only
- * opens the mic and closes it again. Nothing is written to disk.
+ * Samples are not buffered. A hold only opens the mic and closes it.
+ * Nothing is written to disk, and this module does not run recognition.
  */
+
+/** Whisper tiny English weights. The app only checks whether this file exists. */
+export const SPEECH_MODEL_FILE = "ggml-tiny.en.bin";
+
+export type SpeechModelSlot = "missing" | "present";
 
 export type MicStream = { stop: () => void };
 
@@ -156,11 +161,18 @@ export function talkEdge(wasDown: boolean, isDown: boolean): "press" | "release"
   return "same";
 }
 
-export function talkNote(outcome: TalkEnd["outcome"], micOnHold: boolean): string | null {
+export function talkNote(
+  outcome: TalkEnd["outcome"],
+  micOnHold: boolean,
+  model: SpeechModelSlot = "missing",
+): string | null {
   if (!micOnHold && outcome === "idle") {
     return "Hold to talk is not opening the microphone. The switch is in the dev panel.";
   }
   if (outcome === "discarded") {
+    if (model === "present") {
+      return "The speech model file is on disk, but recognition is not running yet. The microphone was closed and nothing was saved.";
+    }
     return "Speech recognition is not installed. The microphone was closed and nothing was saved. Type what you would say in the box below.";
   }
   if (outcome === "denied") {
