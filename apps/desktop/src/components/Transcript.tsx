@@ -15,7 +15,7 @@ export function Transcript({ lines }: { lines: Line[] }) {
 
   return (
     <div
-      className="transcript"
+      className="card transcript"
       ref={ref}
       role="log"
       aria-live="polite"
@@ -25,9 +25,9 @@ export function Transcript({ lines }: { lines: Line[] }) {
       }}
     >
       {lines.map((line) => (
-        <div key={line.id} className={`line ${line.role}${line.rejected ? " rejected" : ""}`}>
-          <span className="who mono">{WHO[line.role]}</span>
-          <p>{line.text}</p>
+        <div key={line.id} className={`log-line role-${line.role}${line.rejected ? " is-rejected" : ""}`}>
+          <span className="log-who mono">{WHO[line.role]}</span>
+          <p className="log-text">{line.text}</p>
         </div>
       ))}
     </div>

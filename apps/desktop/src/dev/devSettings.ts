@@ -12,6 +12,7 @@ export type DevSettings = {
   joystickTalk: boolean;
   joystickButton: number;
   controllerVoice: boolean;
+  navDither: boolean;
 };
 
 export const ACCENT_PRESETS: [string, string][] = [
@@ -19,6 +20,7 @@ export const ACCENT_PRESETS: [string, string][] = [
   ["Signal teal", "#4fd8c4"],
   ["Sky blue", "#6fb3ff"],
   ["Scope green", "#8be28f"],
+  ["Cruise lilac", "#b89bff"],
 ];
 
 export const DEFAULTS: DevSettings = {
@@ -32,6 +34,7 @@ export const DEFAULTS: DevSettings = {
   joystickTalk: true,
   joystickButton: 0,
   controllerVoice: true,
+  navDither: true,
 };
 
 const KEY = "aurelia-radio.dev.v1";

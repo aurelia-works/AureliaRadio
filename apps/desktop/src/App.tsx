@@ -6,6 +6,8 @@ import { Sidebar } from "./components/Sidebar";
 import { StripHeader } from "./components/StripHeader";
 import { Transcript } from "./components/Transcript";
 import { Composer } from "./components/Composer";
+import { RadioCard } from "./components/RadioCard";
+import { StatusBar } from "./components/StatusBar";
 import { DevPanel } from "./dev/DevPanel";
 import { useDevSettings } from "./dev/devSettings";
 import {
@@ -23,6 +25,7 @@ import { browserClickGraph, createClicker, finishClick, nextClicks } from "./rad
 import { browserSynth, createSpeaker, nextSpoken } from "./radio/voice";
 import { isTauri, useRadio } from "./radio/useRadio";
 import { isDemo } from "./radio/demo";
+import { PHASES } from "./radio/types";
 
 export default function App() {
   const radio = useRadio();
@@ -237,33 +240,42 @@ export default function App() {
     };
   }, []);
 
+  const phaseKey = radio.snapshot?.phase.toLowerCase() ?? "clearance";
+  const phaseLabel = PHASES.find(([id]) => id === phaseKey)?.[1] ?? "Clearance";
+
   return (
     <div className={`app ${sidebarOpen ? "" : "sidebar-closed"}`}>
       <TitleBar
         airport="KMCO"
-        connected={!!radio.snapshot?.connected}
         demo={isDemo}
         sidebarOpen={sidebarOpen}
-        devOpen={devOpen}
         onToggleSidebar={() => dev.update({ sidebarOpen: !sidebarOpen })}
-        onToggleDev={() => setDevOpen((v) => !v)}
       />
 
       {sidebarOpen && (
         <Sidebar
           snapshot={radio.snapshot}
+          airport="KMCO"
           showPhaseRail={dev.settings.showPhaseRail}
-          showRadioStack={dev.settings.showRadioStack}
-          onSwap={radio.swapCom1}
-          talking={talking}
-          onTalkPressed={() => applyRef.current(holds.current.pointerDown())}
-          onTalkReleased={() => applyRef.current(holds.current.pointerUp())}
+          dither={dev.settings.navDither}
+          accent={dev.settings.accent}
         />
       )}
 
-      <main className="main">
+      <main className="page">
         <StripHeader snapshot={radio.snapshot} callsign={callsign} />
-        <Transcript lines={radio.lines} />
+        <div className={`page-body ${dev.settings.showRadioStack ? "" : "no-radio"}`}>
+          <Transcript lines={radio.lines} />
+          {dev.settings.showRadioStack && (
+            <RadioCard
+              snapshot={radio.snapshot}
+              onSwap={radio.swapCom1}
+              talking={talking}
+              onTalkPressed={() => applyRef.current(holds.current.pointerDown())}
+              onTalkReleased={() => applyRef.current(holds.current.pointerUp())}
+            />
+          )}
+        </div>
         <Composer
           callsign={callsign}
           destination={destination}
@@ -273,6 +285,13 @@ export default function App() {
           correctReadback={radio.correctReadback}
         />
       </main>
+
+      <StatusBar
+        connected={!!radio.snapshot?.connected}
+        phase={`${phaseLabel} · KMCO`}
+        devOpen={devOpen}
+        onToggleDev={() => setDevOpen((v) => !v)}
+      />
 
       {devOpen && <DevPanel {...dev} speechModel={speechModel} onClose={() => setDevOpen(false)} />}
     </div>
