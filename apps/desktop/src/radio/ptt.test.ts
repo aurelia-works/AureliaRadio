@@ -8,6 +8,7 @@ import {
   SPEECH_MODEL_FILE,
   TALK_CODE,
   talkEdge,
+  NOTHING_HEARD,
   talkNote,
   type MicStream,
 } from "./ptt.ts";
@@ -176,4 +177,26 @@ test("a denial that arrives after release does not stick", async () => {
   await opening;
   assert.equal(session.phase(), "idle");
   assert.equal(session.release().outcome, "idle");
+});
+
+test("a hold that captured samples hands them back at 16 kHz and stops the mic", async () => {
+  let stops = 0;
+  const session = createTalkSession(async () => ({
+    stop() {
+      stops += 1;
+    },
+    captured: () => ({ samples: new Float32Array(48_000).fill(0.1), rate: 48_000 }),
+  }));
+  await session.press();
+  const end = session.release();
+  assert.equal(end.outcome, "captured");
+  assert.equal(end.heard?.length, 16_000);
+  assert.equal(stops, 1);
+  assert.equal(session.release().outcome, "idle");
+});
+
+test("a capture without the model asks to type, and with it leaves the note to recognition", () => {
+  assert.match(talkNote("captured", true, "missing") ?? "", /not installed/);
+  assert.equal(talkNote("captured", true, "present"), null);
+  assert.match(NOTHING_HEARD, /Nothing was heard/);
 });

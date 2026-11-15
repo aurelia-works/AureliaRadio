@@ -12,3 +12,6 @@ plugin/AureliaRadioXPLM/Dist/
 # Local app data
 *.log
 .DS_Store
+
+# Synthetic ASR fixtures (scripts/make-asr-fixtures.sh)
+apps/desktop/src-tauri/fixtures/asr/*.wav

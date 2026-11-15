@@ -1,13 +1,13 @@
 # Aurelia Radio — phase plan
 
-Written 2026-11-11. Status: **P0.5 is done (PRs #1 and #11). P1a and P1b are part done; their first slices are merged (PRs #2 to #10).**
+Written 2026-11-11. Status: **P0.5 is done (PRs #1 and #11). P1a is done. P1b is part done; its first slices are merged (PRs #2 to #10).**
 
 One phase per thread. Each phase ends with its "done when" check, a `HANDOFF-<date>-PHASE-<n>.md`, and a stop. Times are agent time. Token figures are rough ranges, sized from the current code (about 1,500 lines for all of Phase 0) and how much new code and test iteration each phase needs.
 
 | Phase | Name | Est. agent time | Est. tokens | Actual | Model | Status |
 |---|---|---|---|---|---|---|
 | P0.5 | Brand and polish | 40–60 min | 200–350k | not measured | Sonnet 5.5, medium | done |
-| P1a | Voice in | 60–90 min | 350–550k | not measured | Sonnet 5.5, medium | part done |
+| P1a | Voice in | 60–90 min | 350–550k | not measured | Sonnet 5.5, medium | done |
 | P1b | Voice out | 45–75 min | 250–450k | not measured | Sonnet 5.5, medium | part done |
 | P2a | Taxi graph | 60–90 min | 350–550k | | Opus 5.5, medium | not started |
 | P2b | Ground and tower flow | 45–75 min | 300–450k | | Sonnet 5.5, medium | not started |
@@ -45,7 +45,7 @@ Goal: hold a key, speak, and the core gets the right request.
 - 20 recorded WAV fixtures run through ASR and parser in a test.
 - Done when: the 20 scripted calls score ≥95% intent accuracy in `cargo test`; idle RSS < 150 MB measured.
 - Needs: P0.5 (PTT button and transcript components).
-- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. The typed box calls `submit_utterance`. Hold to talk, the backtick key while this window is focused, and a joystick button open the microphone and close it on release. The samples are not saved. The app looks for `ggml-tiny.en.bin` under Application Support and does not run recognition. A missing file keeps the note that speech recognition is not installed. A file on disk says recognition is not running yet. The dev panel shows that status, and can turn the microphone or the joystick off, and can pick the joystick button. The key is not Insert and it is not a system-wide hotkey. Still open: running a local ASR model, the 20 WAV fixtures through that model, and the idle RSS measurement.
+- Done 2026-11-14: a hold keeps the mic samples in memory (30 s cap), resamples them to 16 kHz and sends them to the `transcribe` command. That runs whisper.cpp `tiny.en` (Metal) on this Mac, loaded on the first transmission, greedy at temperature 0. The text goes to `submit_utterance` like a typed call. Nothing is saved or logged. The 20 calls in `apps/desktop/src-tauri/fixtures/asr/lines.tsv` are read by the macOS voice (`scripts/make-asr-fixtures.sh`, synthetic, not a pilot) and scored by an ignored test: Samantha 19/20, Daniel 20/20, Karen 18/20. Idle RSS of the release app with its WebKit helpers peaked at 111 MB over 35 s. Recognition peaks at 182 MB in a test process. Not yet heard: a real voice through the real mic in the Tauri window.
 
 ### P1b — Voice out
 Goal: the controller answers out loud and sounds like a radio.

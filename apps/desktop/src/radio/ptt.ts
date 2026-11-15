@@ -1,19 +1,24 @@
 /** Hold-to-talk microphone session.
  *
- * Samples are not buffered. A hold only opens the mic and closes it.
- * Nothing is written to disk, and this module does not run recognition.
+ * A hold opens the mic and keeps its samples in memory until release (capture.ts caps the length).
+ * On release they are resampled to 16 kHz and handed back once; nothing is written to disk.
+ * Recognition runs in the desktop app (the `transcribe` command), not here.
  */
 
-/** Whisper tiny English weights. The app only checks whether this file exists. */
+import { type Captured, openAudioContext, resample, tapMicrophone } from "./capture.ts";
+
+/** Whisper tiny English weights, loaded by the desktop app on the first transmission. */
 export const SPEECH_MODEL_FILE = "ggml-tiny.en.bin";
 
 export type SpeechModelSlot = "missing" | "present";
 
-export type MicStream = { stop: () => void };
+/** An open mic. `captured` is absent when the stream cannot hand back samples. */
+export type MicStream = { stop: () => void; captured?: () => Captured };
 
+/** `heard` holds 16 kHz mono samples only for a "captured" hold. */
 export type TalkEnd = {
-  outcome: "discarded" | "cancelled" | "denied" | "idle";
-  heard: null;
+  outcome: "captured" | "discarded" | "cancelled" | "denied" | "idle";
+  heard: Float32Array | null;
 };
 
 type Phase = "idle" | "opening" | "live" | "denied";
@@ -59,9 +64,11 @@ export function createTalkSession(requestMic: () => Promise<MicStream>) {
       }
       if (phase === "live") {
         generation += 1;
+        const got = stream?.captured?.();
         stream?.stop();
         stream = null;
         phase = "idle";
+        if (got) return { outcome: "captured", heard: resample(got.samples, got.rate) };
         return { outcome: "discarded", heard: null };
       }
       if (phase === "denied") {
@@ -169,6 +176,10 @@ export function talkNote(
   if (!micOnHold && outcome === "idle") {
     return "Hold to talk is not opening the microphone. The switch is in the dev panel.";
   }
+  if (outcome === "captured") {
+    if (model === "present") return null;
+    return "Speech recognition is not installed. The microphone was closed and nothing was saved. Type what you would say in the box below.";
+  }
   if (outcome === "discarded") {
     if (model === "present") {
       return "The speech model file is on disk, but recognition is not running yet. The microphone was closed and nothing was saved.";
@@ -184,9 +195,31 @@ export function talkNote(
 export function requestBrowserMic(): Promise<MicStream> {
   const media = navigator.mediaDevices;
   if (!media?.getUserMedia) return Promise.reject(new Error("no microphone"));
-  return media.getUserMedia({ audio: true, video: false }).then((opened) => ({
-    stop() {
-      for (const track of opened.getTracks()) track.stop();
+  const context = openAudioContext();
+  const release = () => void context?.close().catch(() => {});
+  return media.getUserMedia({ audio: true, video: false }).then(
+    (opened) => {
+      let tap: ReturnType<typeof tapMicrophone> | null = null;
+      try {
+        tap = context ? tapMicrophone(opened, context) : null;
+      } catch {
+        tap = null;
+      }
+      return {
+        captured: tap?.captured,
+        stop() {
+          tap?.close();
+          release();
+          for (const track of opened.getTracks()) track.stop();
+        },
+      };
     },
-  }));
+    (error) => {
+      release();
+      throw error;
+    },
+  );
 }
+
+/** Shown when a hold was recognized as silence or was too short to decode. */
+export const NOTHING_HEARD = "Nothing was heard. Hold the button for the whole call and speak after it lights.";

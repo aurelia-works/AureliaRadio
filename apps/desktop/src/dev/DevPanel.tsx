@@ -119,8 +119,8 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
           </output>
         </span>
         <p className="small">
-          Looks for <span className="mono">{SPEECH_MODEL_FILE}</span> under Application Support. Recognition does not
-          run yet.
+          Looks for <span className="mono">{SPEECH_MODEL_FILE}</span> under Application Support. It loads on the first
+          transmission and runs on this Mac; the audio is not saved.
         </p>
       </div>
 
