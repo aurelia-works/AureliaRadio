@@ -1,0 +1,21 @@
+# id	intent	text  (the same 20 calls as radio-core intent.rs twenty_scripted_calls_clear_the_accuracy_bar)
+01	clearance	N123AB, request IFR clearance to KJFK.
+02	clearance	November one two three alpha bravo, request IFR clearance to kilo juliet foxtrot kilo.
+03	clearance	N456CD request clearance to KMIA.
+04	clearance	Skyhawk N17G, ready to copy IFR to KTPA.
+05	taxi	N123AB, request taxi.
+06	taxi	November one two three alpha bravo, request taxi.
+07	taxi	N456CD request taxi.
+08	takeoff	N123AB, ready for departure.
+09	takeoff	N123AB, ready for takeoff.
+10	takeoff	November one two three alpha bravo, request takeoff.
+11	departure	N123AB, switching to departure.
+12	departure	N123AB with departure.
+13	readback	N123AB cleared to KJFK via radar vectors, climb 10000, squawk 5427.
+14	readback	November one two three alpha bravo, climb one zero thousand, squawk five four two seven.
+15	readback	N123AB, taxi to runway 18L via A, B, hold short of runway 18L.
+16	readback	N123AB, hold short runway 18L.
+17	readback	N123AB cleared for takeoff runway 18L.
+18	readback	cleared to KMIA, climb 5000 feet, squawk 1200.
+19	readback	N123AB, runway 18L, cleared for takeoff.
+20	none	say again, we are at the ramp.

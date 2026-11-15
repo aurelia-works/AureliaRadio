@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod asr;
+
 use radio_core::{Controller, ControllerResponse, FrequencyKind, Phase, PilotRequest};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -33,6 +35,8 @@ struct AppState {
     telemetry: Arc<Mutex<Option<Telemetry>>>,
     last_seen: Arc<Mutex<Option<Instant>>>,
     speaker: Mutex<LiveSpeaker>,
+    /// Loaded on the first transmission; `None` until then so an idle app does not hold the model.
+    recognizer: Arc<Mutex<Option<asr::Recognizer>>>,
 }
 
 struct LiveSpeaker {
@@ -289,6 +293,46 @@ fn speech_model(app: tauri::AppHandle) -> SpeechModel {
     SpeechModel { installed }
 }
 
+#[derive(Serialize)]
+struct Heard {
+    text: String,
+}
+
+/// Recognize one hold of the talk button. The body is raw little-endian f32 samples at 16 kHz mono.
+/// The samples and the text stay in memory; neither is written to disk or logged.
+#[tauri::command]
+async fn transcribe(
+    app: tauri::AppHandle,
+    request: tauri::ipc::Request<'_>,
+) -> Result<Heard, String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("expected raw audio samples".into());
+    };
+    let samples = asr::samples_from_bytes(bytes);
+    let model = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "no app data folder".to_string())?
+        .join("models")
+        .join(SPEECH_MODEL_FILE);
+    let recognizer = Arc::clone(&app.state::<AppState>().recognizer);
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut slot = recognizer
+            .lock()
+            .map_err(|_| "recognizer lock".to_string())?;
+        if slot.is_none() {
+            if !model.is_file() {
+                return Err("Speech recognition is not installed.".to_string());
+            }
+            *slot = Some(asr::Recognizer::load(&model)?);
+        }
+        let text = slot.as_mut().expect("loaded above").transcribe(&samples)?;
+        Ok(Heard { text })
+    })
+    .await
+    .map_err(|_| "recognition stopped".to_string())?
+}
+
 /// Text worth handing to the system voice. Empty lines are not spoken.
 /// The cap keeps one reply from turning into a long monologue.
 fn spoken_text(text: &str) -> Option<String> {
@@ -407,6 +451,7 @@ fn main() {
                 child: None,
                 generation: 0,
             }),
+            recognizer: Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             snapshot,
@@ -421,6 +466,7 @@ fn main() {
             set_standby,
             swap_com1,
             speech_model,
+            transcribe,
             speak_line
         ])
         .run(tauri::generate_context!())

@@ -15,6 +15,7 @@ import {
   createTalkSession,
   isTypingTarget,
   joystickPressed,
+  NOTHING_HEARD,
   requestBrowserMic,
   TALK_CODE,
   talkEdge,
@@ -46,8 +47,20 @@ export default function App() {
       return;
     }
     setTalking(false);
-    const text = talkNote(talk.current.release().outcome, micOnHold, speechModel);
+    const end = talk.current.release();
+    const text = talkNote(end.outcome, micOnHold, speechModel);
     if (text) radio.note(text);
+    else if (end.outcome === "captured" && end.heard && isTauri) void hear(end.heard);
+  };
+  /** Local recognition, then the same path as a typed call. The samples are dropped after the call. */
+  const hear = async (samples: Float32Array) => {
+    try {
+      const { text } = await invoke<{ text: string }>("transcribe", new Uint8Array(samples.buffer));
+      if (text) await radio.send("submit_utterance", { text }, text);
+      else radio.note(NOTHING_HEARD);
+    } catch (error) {
+      radio.note(String(error));
+    }
   };
   const applyRef = useRef(applyHold);
   applyRef.current = applyHold;
