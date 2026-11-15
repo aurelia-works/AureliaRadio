@@ -8,7 +8,7 @@ use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{Manager, State};
+use tauri::{Emitter, Manager, State};
 
 const TELEMETRY_STALE: Duration = Duration::from_secs(2);
 const PLUGIN_COMMAND_ADDR: &str = "127.0.0.1:49021";
@@ -32,7 +32,12 @@ struct AppState {
     controller: Mutex<Controller>,
     telemetry: Arc<Mutex<Option<Telemetry>>>,
     last_seen: Arc<Mutex<Option<Instant>>>,
-    speaker: Mutex<Option<Child>>,
+    speaker: Mutex<LiveSpeaker>,
+}
+
+struct LiveSpeaker {
+    child: Option<Child>,
+    generation: u64,
 }
 
 #[derive(Serialize, Clone)]
@@ -294,23 +299,63 @@ fn spoken_text(text: &str) -> Option<String> {
     Some(trimmed.chars().take(2_000).collect())
 }
 
-fn stop_speaker(slot: &mut Option<Child>) {
-    if let Some(mut child) = slot.take() {
-        let _ = child.kill();
-        let _ = child.wait();
+fn stop_speaker(child: &mut Option<Child>) {
+    if let Some(mut running) = child.take() {
+        let _ = running.kill();
+        let _ = running.wait();
+    }
+}
+
+#[derive(Serialize)]
+struct SpeakStarted {
+    spoken: bool,
+    generation: u64,
+}
+
+/// Wait until this generation's `say` process exits, then tell the window.
+/// A newer line bumps the generation, and this wait ends without an event.
+fn wait_until_quiet(app: tauri::AppHandle, generation: u64) {
+    loop {
+        std::thread::sleep(Duration::from_millis(40));
+        let finished = {
+            let state = app.state::<AppState>();
+            let mut slot = state.speaker.lock().expect("speaker lock");
+            if slot.generation != generation {
+                return;
+            }
+            let done = match slot.child.as_mut() {
+                Some(child) => matches!(child.try_wait(), Ok(Some(_))),
+                None => true,
+            };
+            if !done {
+                false
+            } else {
+                slot.child = None;
+                true
+            }
+        };
+        if finished {
+            let _ = app.emit("speak-done", generation);
+            return;
+        }
     }
 }
 
 /// Speak one controller line with the macOS `say` command.
 /// The line is written to stdin so it cannot be read as a flag (`--network-send` included).
 /// An empty line stops whatever is still speaking.
-/// Returns false when this system did not speak, so the webview can use its own voice.
+/// `spoken` is false when this system did not speak, so the webview can use its own voice.
 #[tauri::command]
-fn speak_line(text: String, state: State<AppState>) -> bool {
+fn speak_line(app: tauri::AppHandle, text: String, state: State<AppState>) -> SpeakStarted {
     let mut slot = state.speaker.lock().expect("speaker lock");
-    stop_speaker(&mut slot);
+    slot.generation = slot.generation.wrapping_add(1);
+    let generation = slot.generation;
+    stop_speaker(&mut slot.child);
     let Some(spoken) = spoken_text(&text) else {
-        return true;
+        return SpeakStarted {
+            spoken: true,
+            generation,
+        };
     };
     #[cfg(target_os = "macos")]
     {
@@ -321,18 +366,30 @@ fn speak_line(text: String, state: State<AppState>) -> bool {
             .stderr(Stdio::null())
             .spawn()
         else {
-            return false;
+            return SpeakStarted {
+                spoken: false,
+                generation,
+            };
         };
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(spoken.as_bytes());
         }
-        *slot = Some(child);
-        return true;
+        slot.child = Some(child);
+        drop(slot);
+        let handle = app.clone();
+        std::thread::spawn(move || wait_until_quiet(handle, generation));
+        return SpeakStarted {
+            spoken: true,
+            generation,
+        };
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = spoken;
-        false
+        let _ = (spoken, app);
+        SpeakStarted {
+            spoken: false,
+            generation,
+        }
     }
 }
 
@@ -346,7 +403,10 @@ fn main() {
             controller: Mutex::new(Controller::kmco()),
             telemetry,
             last_seen,
-            speaker: Mutex::new(None),
+            speaker: Mutex::new(LiveSpeaker {
+                child: None,
+                generation: 0,
+            }),
         })
         .invoke_handler(tauri::generate_handler![
             snapshot,

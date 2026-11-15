@@ -51,7 +51,7 @@ Goal: the controller answers out loud and sounds like a radio.
 - TTS (OS voice first, Piper/Kokoro if it fits the budget), radio FX chain (band-pass, compression, squelch, click), in-sim panel text in the plugin.
 - Done when: first audio < 1.5 s and active RSS < 400 MB measured on the M1 Air; a wrong readback gets the correct spoken "say again"; Jah hears a clearance exchange.
 - Needs: P1a.
-- Part done: a new controller line is spoken with the macOS system voice. Lines already on screen stay quiet. Pilot lines and system notes stay quiet. The dev panel can turn the voice off. The browser demo uses the browser speech engine, and the desktop app uses that engine when the system voice does not start. Still open: the radio effect chain, the 1.5 s first-audio measurement, active RSS, and Jah hearing a clearance exchange.
+- Part done: a new controller line is spoken with the macOS system voice. Lines already on screen stay quiet. Pilot lines and system notes stay quiet. The dev panel can turn the voice off. The browser demo uses the browser speech engine, and the desktop app uses that engine when the system voice does not start. A short radio click marks the start of that line and the end of it. Still open: band-pass, compression, and the rest of the radio effect, the 1.5 s first-audio measurement, active RSS, and Jah hearing a clearance exchange.
 
 ### P2a — Taxi graph
 Goal: real taxi routes instead of the hardcoded "via A".
