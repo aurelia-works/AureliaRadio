@@ -7,7 +7,7 @@ One phase per thread. Each phase ends with its "done when" check, a `HANDOFF-<da
 | Phase | Name | Est. agent time | Est. tokens | Actual | Model | Status |
 |---|---|---|---|---|---|---|
 | P0.5 | Brand and polish | 40–60 min | 200–350k | not measured | Sonnet 5.5, medium | in review |
-| P1a | Voice in | 60–90 min | 350–550k | | Sonnet 5.5, medium | not started |
+| P1a | Voice in | 60–90 min | 350–550k | not measured | Sonnet 5.5, medium | part done |
 | P1b | Voice out | 45–75 min | 250–450k | | Sonnet 5.5, medium | not started |
 | P2a | Taxi graph | 60–90 min | 350–550k | | Opus 5.5, medium | not started |
 | P2b | Ground and tower flow | 45–75 min | 300–450k | | Sonnet 5.5, medium | not started |
@@ -44,6 +44,7 @@ Goal: hold a key, speak, and the core gets the right request.
 - 20 recorded WAV fixtures run through ASR and parser in a test.
 - Done when: the 20 scripted calls score ≥95% intent accuracy in `cargo test`; idle RSS < 150 MB measured.
 - Needs: P0.5 (PTT button and transcript components).
+- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. Microphone capture, the ASR model and the idle RSS measurement are still open.
 
 ### P1b — Voice out
 Goal: the controller answers out loud and sounds like a radio.
