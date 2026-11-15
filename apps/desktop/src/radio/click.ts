@@ -1,4 +1,8 @@
-/** A short radio click around a controller transmission. No audio file is used. */
+/** A short radio click around a controller transmission. No audio file is used.
+ * The burst is limited to a radio band. The spoken voice is not filtered here.
+ */
+
+import { radioBand } from "./band.ts";
 
 export type ClickKind = "open" | "close";
 
@@ -34,10 +38,11 @@ export function scheduleClick(graph: ClickGraph, kind: ClickKind): number {
   const frames = Math.max(1, Math.round(rate * (kind === "open" ? 0.028 : 0.04)));
   const buffer = graph.createBuffer(1, frames, rate);
   const data = buffer.getChannelData(0);
+  const raw = new Float32Array(frames);
+  for (let i = 0; i < frames; i += 1) raw[i] = Math.random() * 2 - 1;
+  const filtered = radioBand(raw, rate);
   const decay = kind === "open" ? 90 : 160;
-  for (let i = 0; i < frames; i += 1) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / decay) * 0.4;
-  }
+  for (let i = 0; i < frames; i += 1) data[i] = filtered[i] * Math.exp(-i / decay) * 0.4;
   const source = graph.createBufferSource();
   source.buffer = buffer;
   source.connect(graph.destination);
