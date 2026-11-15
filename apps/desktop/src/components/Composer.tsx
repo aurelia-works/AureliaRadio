@@ -21,23 +21,23 @@ export function Composer({ callsign, destination, onCallsign, onDestination, sen
   };
 
   return (
-    <section className="composer" aria-label="Pilot requests">
+    <section className="actionbar" aria-label="Pilot requests">
       <div className="composer-row">
         <label className="field" htmlFor="callsign">
-          <span>Callsign</span>
+          <span className="label">Callsign</span>
           <input
             id="callsign"
-            className="mono"
+            className="input mono"
             value={callsign}
             spellCheck={false}
             onChange={(e) => onCallsign(e.target.value.toUpperCase())}
           />
         </label>
         <label className="field" htmlFor="destination">
-          <span>Destination</span>
+          <span className="label">Destination</span>
           <input
             id="destination"
-            className="mono"
+            className="input mono"
             value={destination}
             spellCheck={false}
             onChange={(e) => onDestination(e.target.value.toUpperCase())}
@@ -45,7 +45,7 @@ export function Composer({ callsign, destination, onCallsign, onDestination, sen
         </label>
         <div className="requests">
           <button
-            className="btn primary"
+            className="btn btn-primary"
             onClick={() =>
               send("request_clearance", { callsign, destination }, `${callsign}, request IFR clearance to ${destination}.`)
             }
@@ -67,7 +67,7 @@ export function Composer({ callsign, destination, onCallsign, onDestination, sen
       <div className="readback">
         <textarea
           id="readback"
-          className="mono"
+          className="input mono"
           value={readback}
           placeholder="Type what you would say, then press ⌘ Return"
           spellCheck={false}
@@ -80,10 +80,10 @@ export function Composer({ callsign, destination, onCallsign, onDestination, sen
           }}
         />
         <div className="readback-actions">
-          <button className="btn ghost" onClick={async () => setReadback((await correctReadback()) ?? readback)}>
+          <button className="btn" onClick={async () => setReadback((await correctReadback()) ?? readback)}>
             Fill correct readback
           </button>
-          <button className="btn primary" onClick={sendUtterance} disabled={!readback.trim()}>
+          <button className="btn btn-primary" onClick={sendUtterance} disabled={!readback.trim()}>
             Send
           </button>
         </div>

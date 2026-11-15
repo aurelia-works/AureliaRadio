@@ -52,6 +52,7 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
         <input
           id="dev-density"
           type="range"
+          className="slider"
           min={0.8}
           max={1.25}
           step={0.05}
@@ -67,6 +68,7 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
         <input
           id="dev-log"
           type="range"
+          className="slider"
           min={12}
           max={18}
           step={1}
@@ -76,7 +78,8 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
       </label>
 
       <Toggle id="dev-phases" label="Phase rail" on={settings.showPhaseRail} set={(v) => update({ showPhaseRail: v })} />
-      <Toggle id="dev-radio" label="Radio stack" on={settings.showRadioStack} set={(v) => update({ showRadioStack: v })} />
+      <Toggle id="dev-dither" label="Selected-phase dither" on={settings.navDither} set={(v) => update({ navDither: v })} />
+      <Toggle id="dev-radio" label="COM1 card" on={settings.showRadioStack} set={(v) => update({ showRadioStack: v })} />
       <Toggle id="dev-sidebar" label="Sidebar" on={settings.sidebarOpen} set={(v) => update({ sidebarOpen: v })} />
       <Toggle id="dev-mic" label="Microphone on hold" on={settings.micOnHold} set={(v) => update({ micOnHold: v })} />
       <div className="dev-group">
@@ -86,7 +89,7 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
           on={settings.controllerVoice}
           set={(v) => update({ controllerVoice: v })}
         />
-        <p className="tiny">
+        <p className="small">
           A new controller line is read by the system voice on this Mac, with a short click limited to a radio
           band. The spoken voice is not filtered. Pilot lines and notes stay quiet.
         </p>
@@ -99,6 +102,7 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
         <input
           id="dev-joy-button"
           type="range"
+          className="slider"
           min={0}
           max={15}
           step={1}
@@ -114,13 +118,13 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
             {speechModel === "present" ? "file found" : "not installed"}
           </output>
         </span>
-        <p className="tiny">
+        <p className="small">
           Looks for <span className="mono">{SPEECH_MODEL_FILE}</span> under Application Support. Recognition does not
           run yet.
         </p>
       </div>
 
-      <button className="btn ghost" onClick={reset}>
+      <button className="btn" onClick={reset}>
         Reset to defaults
       </button>
     </aside>
@@ -130,8 +134,8 @@ export function DevPanel({ settings, update, reset, speechModel, onClose }: Prop
 function Toggle({ id, label, on, set }: { id: string; label: string; on: boolean; set: (v: boolean) => void }) {
   return (
     <label className="dev-toggle" htmlFor={id}>
+      <input id={id} type="checkbox" checked={on} onChange={(e) => set(e.target.checked)} />
       <span>{label}</span>
-      <input id={id} type="checkbox" role="switch" checked={on} onChange={(e) => set(e.target.checked)} />
     </label>
   );
 }

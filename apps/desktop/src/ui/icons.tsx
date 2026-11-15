@@ -19,14 +19,6 @@ export const SidebarIcon = ({ size = 16 }: P) => (
   </svg>
 );
 
-export const SlidersIcon = ({ size = 16 }: P) => (
-  <svg {...base(size)}>
-    <path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6" />
-    <circle cx="10" cy="4.5" r="1.5" />
-    <circle cx="6" cy="11.5" r="1.5" />
-  </svg>
-);
-
 export const SwapIcon = ({ size = 16 }: P) => (
   <svg {...base(size)}>
     <path d="M3 5.5h9.5L10 3M13 10.5H3.5L6 13" />

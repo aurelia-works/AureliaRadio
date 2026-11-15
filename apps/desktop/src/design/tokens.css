@@ -1,56 +1,59 @@
 /*
- * Design tokens. Same shape as CruiseControl's desktop/src/design/tokens.css, with Radio's own palette:
- * a cool blue-black ground and beacon amber. Dark only. The dev panel overrides --accent, --log-size and
- * --density at runtime; everything accent-tinted derives from --accent with color-mix, so one value repaints the app.
+ * Design tokens. Neutrals, spacing and shape copy CruiseControl's desktop/src/design/tokens.css
+ * (square corners, 1px borders, no shadows). The accent stays Radio's beacon amber; every accent-tinted
+ * fill derives from --accent with color-mix, so the dev panel can repaint the app with one value.
+ * The dev panel also writes --on-accent, --density and --log-size at runtime.
  */
 :root {
-  /* Ground and surfaces */
-  --canvas: #0b0e13;
-  --sidebar-bg: #0f131a;
-  --surface: #12161d;
-  --elevated: #181d26;
-  --hover: #1e2430;
-  --border: #252c38;
-  --border-strong: #354052;
+  /* Brushes (CruiseControl: Canvas, Surface, Elevated, Border, Text, Muted) */
+  --canvas: #101014;
+  --surface: #19191f;
+  --elevated: #23232d;
+  --border: #393842;
+  --text: #f3f1f7;
+  --muted: #b5b0c1;
+  --faint: #8a8596;
 
-  /* Text */
-  --text: #e8ecf2;
-  --muted: #93a0b2;
-  --faint: #67748a;
+  --sidebar-bg: #141419;
+  --nav-hover: #26242e;
+  --grid-line: #292830;
+  --scroll-thumb: #575160;
+  --action-bar: #202027;
+  --log-bg: #1c1b22;
 
-  /* Accent (beacon amber) and its derived tints */
+  /* Accent (beacon amber) and its derived fills; CruiseControl's literal purples are replaced by these */
   --accent: #f2b441;
   --on-accent: #17120a;
-  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
-  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
-  --accent-text: color-mix(in srgb, var(--accent) 70%, var(--text));
+  --nav-selected: color-mix(in srgb, var(--accent) 12%, var(--sidebar-bg));
+  --nav-selected-border: color-mix(in srgb, var(--accent) 42%, var(--border));
+  --pressed: color-mix(in srgb, var(--accent) 16%, var(--elevated));
+  --selection: color-mix(in srgb, var(--accent) 38%, transparent);
+  --accent-text: color-mix(in srgb, var(--accent) 78%, var(--text));
 
   /* Semantic */
-  --green: #7fd6a0;
-  --green-soft: color-mix(in srgb, var(--green) 14%, transparent);
-  --warn: #f0a56b;
-  --red: #f0707f;
-  --red-soft: color-mix(in srgb, var(--red) 16%, transparent);
-  --pilot: #8fb8ff;
-  --pilot-soft: color-mix(in srgb, var(--pilot) 10%, transparent);
+  --green: #8dd5aa;
+  --amber: #e8bf7b;
+  --red: #f38f9b;
+  --pilot: #a9b8ff;
 
-  /* Type */
-  --font-body: Inter, -apple-system, "SF Pro Text", system-ui, sans-serif;
-  --font-display: "SF Pro Display", -apple-system, Inter, system-ui, sans-serif;
-  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
-  --font-size: 13px;
+  /* Type. No font files are shipped; the stack falls back to the system face. */
+  --font-body: "Clash Grotesk", -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font-size: 14px;
   --log-size: 14px;
 
-  /* Spacing (density scales these) */
+  /* Spacing (the dev panel's density scales page and card padding) */
   --density: 1;
-  --pad: calc(20px * var(--density));
-  --gap: calc(12px * var(--density));
-  --row-pad: calc(10px * var(--density));
-  --radius: 10px;
-  --radius-sm: 7px;
+  --page-padding: calc(28px * var(--density));
+  --card-padding: calc(16px * var(--density));
+  --helper-gap: 4px;
+  --field-gap: 8px;
+  --group-gap: 12px;
+  --section-gap: calc(16px * var(--density));
 
-  --sidebar-width: 280px;
+  --sidebar-width: 220px;
   --titlebar: 52px; /* clears the overlay traffic lights (tauri.conf.json trafficLightPosition) */
+  --statusbar: 30px;
   --transition: 120ms;
 
   color-scheme: dark;
