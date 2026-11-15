@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createSpeaker, lineToSpeak, nextSpoken, type SpeechSynth } from "./voice.ts";
+import { browserSynth, createSpeaker, lineToSpeak, nextSpoken, type SpeechSynth } from "./voice.ts";
 
 const history = [
   { id: 1, role: "system", text: "Demo data." },
@@ -96,4 +96,27 @@ test("a missing speech engine is ignored", () => {
   speaker.say("hello");
   assert.equal(speaker.current(), null);
   speaker.stop();
+});
+
+test("the browser fallback voice asks for English, whatever the system language is", () => {
+  const spoken: { text: string; lang: string }[] = [];
+  class FakeUtterance {
+    text: string;
+    lang = "";
+    onend: (() => void) | null = null;
+    constructor(text: string) {
+      this.text = text;
+    }
+  }
+  const g = globalThis as Record<string, unknown>;
+  const saved = { window: g.window, SpeechSynthesisUtterance: g.SpeechSynthesisUtterance };
+  g.SpeechSynthesisUtterance = FakeUtterance;
+  g.window = { speechSynthesis: { speak: (u: FakeUtterance) => spoken.push({ text: u.text, lang: u.lang }), cancel() {} } };
+  try {
+    browserSynth()?.speak({ text: "N123AB, taxi to runway 18L." });
+  } finally {
+    g.window = saved.window;
+    g.SpeechSynthesisUtterance = saved.SpeechSynthesisUtterance;
+  }
+  assert.deepEqual(spoken, [{ text: "N123AB, taxi to runway 18L.", lang: "en-US" }]);
 });
