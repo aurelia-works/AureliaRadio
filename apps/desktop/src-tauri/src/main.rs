@@ -343,6 +343,15 @@ fn spoken_text(text: &str) -> Option<String> {
     Some(trimmed.chars().take(2_000).collect())
 }
 
+/// An English system voice, named so the Mac's speech language setting cannot swap it
+/// (a Mac set to Cantonese read the ATC lines as noise).
+const CONTROLLER_VOICE: &str = "Samantha";
+
+/// Arguments for `/usr/bin/say`: the voice, then the line read from stdin so it cannot be taken as a flag.
+fn say_args(voice: &str) -> [&str; 3] {
+    ["-v", voice, "--input-file=-"]
+}
+
 fn stop_speaker(child: &mut Option<Child>) {
     if let Some(mut running) = child.take() {
         let _ = running.kill();
@@ -404,7 +413,7 @@ fn speak_line(app: tauri::AppHandle, text: String, state: State<AppState>) -> Sp
     #[cfg(target_os = "macos")]
     {
         let Ok(mut child) = Command::new("/usr/bin/say")
-            .arg("--input-file=-")
+            .args(say_args(CONTROLLER_VOICE))
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -475,7 +484,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{speech_model_installed, spoken_text};
+    use super::{say_args, speech_model_installed, spoken_text, CONTROLLER_VOICE};
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -511,5 +520,14 @@ mod tests {
         );
         let long = "a".repeat(2_050);
         assert_eq!(spoken_text(&long).expect("clipped").chars().count(), 2_000);
+    }
+
+    #[test]
+    fn the_controller_voice_is_named_so_the_system_language_cannot_pick_it() {
+        assert_eq!(CONTROLLER_VOICE, "Samantha");
+        assert_eq!(
+            say_args(CONTROLLER_VOICE),
+            ["-v", "Samantha", "--input-file=-"]
+        );
     }
 }

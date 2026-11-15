@@ -69,13 +69,14 @@ export function createSpeaker(getSynth: () => SpeechSynth | null) {
   };
 }
 
-/** The browser's own speech engine, looked up at the moment of speaking. */
+/** The browser's own speech engine, looked up at the moment of speaking. English is asked for, so a Mac set to another language still reads ATC in English. */
 export function browserSynth(): SpeechSynth | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   const synth = window.speechSynthesis;
   return {
     speak(utterance) {
       const item = new SpeechSynthesisUtterance(utterance.text);
+      item.lang = "en-US";
       item.onend = () => utterance.onend?.();
       synth.speak(item);
     },
