@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { PHASES, type Snapshot } from "../radio/types";
 import { CheckIcon, MicIcon, SwapIcon } from "../ui/icons";
 
@@ -7,11 +7,20 @@ type Props = {
   showPhaseRail: boolean;
   showRadioStack: boolean;
   onSwap: () => void;
+  talking: boolean;
   onTalkPressed: () => void;
   onTalkReleased: () => void;
 };
 
-export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTalkPressed, onTalkReleased }: Props) {
+export function Sidebar({
+  snapshot,
+  showPhaseRail,
+  showRadioStack,
+  onSwap,
+  talking,
+  onTalkPressed,
+  onTalkReleased,
+}: Props) {
   const phaseKey = snapshot?.phase.toLowerCase() ?? "clearance";
   const active = Math.max(0, PHASES.findIndex(([id]) => id === phaseKey));
 
@@ -35,7 +44,13 @@ export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTal
       )}
 
       {showRadioStack && (
-        <RadioStack snapshot={snapshot} onSwap={onSwap} onTalkPressed={onTalkPressed} onTalkReleased={onTalkReleased} />
+        <RadioStack
+          snapshot={snapshot}
+          onSwap={onSwap}
+          talking={talking}
+          onTalkPressed={onTalkPressed}
+          onTalkReleased={onTalkReleased}
+        />
       )}
     </aside>
   );
@@ -44,19 +59,31 @@ export function Sidebar({ snapshot, showPhaseRail, showRadioStack, onSwap, onTal
 function RadioStack({
   snapshot,
   onSwap,
+  talking,
   onTalkPressed,
   onTalkReleased,
 }: {
   snapshot: Snapshot | null;
   onSwap: () => void;
+  talking: boolean;
   onTalkPressed: () => void;
   onTalkReleased: () => void;
 }) {
-  const [tx, setTx] = useState(false);
   const connected = !!snapshot?.connected;
-  const release = () => {
-    if (!tx) return;
-    setTx(false);
+  const pointerDown = useRef(false);
+  const releaseRef = useRef(onTalkReleased);
+  releaseRef.current = onTalkReleased;
+  useEffect(
+    () => () => {
+      if (!pointerDown.current) return;
+      pointerDown.current = false;
+      releaseRef.current();
+    },
+    [],
+  );
+  const releasePointer = () => {
+    if (!pointerDown.current) return;
+    pointerDown.current = false;
     onTalkReleased();
   };
 
@@ -82,18 +109,18 @@ function RadioStack({
         </div>
       </div>
       <button
-        className={`ptt ${tx ? "tx" : ""}`}
+        className={`ptt ${talking ? "tx" : ""}`}
         onPointerDown={() => {
-          setTx(true);
+          pointerDown.current = true;
           onTalkPressed();
         }}
-        onPointerUp={release}
-        onPointerLeave={release}
+        onPointerUp={releasePointer}
+        onPointerLeave={releasePointer}
       >
         <MicIcon />
-        {tx ? "Transmitting" : "Hold to talk"}
+        {talking ? "Transmitting" : "Hold to talk"}
       </button>
-      <p className="tiny">The A320 RMP and the 737 tuning panel drive the same COM1.</p>
+      <p className="tiny">Hold ` while this window is focused. The A320 RMP and the 737 tuning panel drive the same COM1.</p>
     </section>
   );
 }
