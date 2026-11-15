@@ -1,12 +1,12 @@
 # Aurelia Radio — phase plan
 
-Written 2026-11-11. Status: **P0.5 is in review. P1a and P1b are part done.**
+Written 2026-11-11. Status: **P0.5 is done (PRs #1 and #11). P1a and P1b are part done; their first slices are merged (PRs #2 to #10).**
 
 One phase per thread. Each phase ends with its "done when" check, a `HANDOFF-<date>-PHASE-<n>.md`, and a stop. Times are agent time. Token figures are rough ranges, sized from the current code (about 1,500 lines for all of Phase 0) and how much new code and test iteration each phase needs.
 
 | Phase | Name | Est. agent time | Est. tokens | Actual | Model | Status |
 |---|---|---|---|---|---|---|
-| P0.5 | Brand and polish | 40–60 min | 200–350k | not measured | Sonnet 5.5, medium | in review |
+| P0.5 | Brand and polish | 40–60 min | 200–350k | not measured | Sonnet 5.5, medium | done |
 | P1a | Voice in | 60–90 min | 350–550k | not measured | Sonnet 5.5, medium | part done |
 | P1b | Voice out | 45–75 min | 250–450k | not measured | Sonnet 5.5, medium | part done |
 | P2a | Taxi graph | 60–90 min | 350–550k | | Opus 5.5, medium | not started |
@@ -37,6 +37,7 @@ Goal: the app looks finished and carries none of the old logos.
 - Dev panel: accent colour, density, transcript font size, radio-stack toggle.
 - Done when: screenshots at 1280/1440/1920 score 9/10 or better (`ui-critique`, `nine-judge`); `grep` finds no old icon; `cargo test` and `npm run build` green.
 - Needs: logo and accent choice.
+- Done 2026-11-14: the Scope mark and icon set (PR #1), then CruiseControl's look with the amber accent kept (PR #11). Every part scored 9 from browser shots at 1280/1440/1920, 1040×720 and 820×560. The Tauri window itself has not been seen.
 
 ### P1a — Voice in
 Goal: hold a key, speak, and the core gets the right request.
