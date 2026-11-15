@@ -71,6 +71,15 @@ impl Controller {
         &self.runway
     }
 
+    /// Classifies a typed or spoken line, then handles it.
+    /// An unrecognized line is "Say again." and does not change the phase.
+    pub fn apply_utterance(&mut self, text: &str) -> ControllerResponse {
+        match crate::intent::parse_intent(text) {
+            Some(request) => self.handle(request),
+            None => self.respond("Say again.".to_string(), false, None),
+        }
+    }
+
     pub fn handle(&mut self, request: PilotRequest) -> ControllerResponse {
         match request {
             PilotRequest::Clearance {
@@ -209,6 +218,34 @@ mod tests {
             destination: "KJFK".into(),
         });
         controller
+    }
+
+    #[test]
+    fn a_spoken_clearance_is_accepted() {
+        let mut controller = Controller::kmco();
+        let response = controller.apply_utterance("N123AB, request IFR clearance to KJFK.");
+        assert!(response.accepted);
+        assert!(response.transmission.contains("KJFK"));
+        assert_eq!(controller.clearance().unwrap().callsign, "N123AB");
+    }
+
+    #[test]
+    fn an_unrecognized_line_is_say_again() {
+        let mut controller = Controller::kmco();
+        let response = controller.apply_utterance("say again, we are at the ramp.");
+        assert_eq!(response.transmission, "Say again.");
+        assert!(!response.accepted);
+        assert_eq!(controller.phase(), Phase::ClearanceDelivery);
+        assert!(controller.clearance().is_none());
+    }
+
+    #[test]
+    fn a_filled_readback_spoken_as_text_advances_to_ground() {
+        let mut controller = controller_with_clearance();
+        let readback = controller.clearance().unwrap().readback();
+        let response = controller.apply_utterance(&readback);
+        assert!(response.accepted, "{}", response.transmission);
+        assert_eq!(response.phase, Phase::Ground);
     }
 
     #[test]

@@ -204,6 +204,14 @@ fn clearance_readback(state: State<AppState>) -> Option<String> {
 }
 
 #[tauri::command]
+fn submit_utterance(state: State<AppState>, text: String) -> Reply {
+    let mut controller = state.controller.lock().expect("controller lock");
+    let response = controller.apply_utterance(&text);
+    let telemetry = live_telemetry(state.inner());
+    reply(&controller, telemetry.as_ref(), response)
+}
+
+#[tauri::command]
 fn readback(state: State<AppState>, text: String) -> Reply {
     let mut controller = state.controller.lock().expect("controller lock");
     let response = controller.handle(PilotRequest::Readback(text));
@@ -265,6 +273,7 @@ fn main() {
             snapshot,
             request_clearance,
             clearance_readback,
+            submit_utterance,
             readback,
             request_taxi,
             request_takeoff,
