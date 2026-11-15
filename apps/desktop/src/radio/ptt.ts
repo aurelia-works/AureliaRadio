@@ -79,11 +79,12 @@ export function isTypingTarget(target: { tagName?: string; isContentEditable?: b
   return target.isContentEditable === true;
 }
 
-/** The button and the focused-window key can be down together. The mic opens on the first and closes on the last. */
+/** The on-screen button, the focused-window key, and a joystick button can be down together. The mic opens on the first and closes on the last. */
 export function createTalkHolds() {
   let pointer = false;
   let key = false;
-  const held = () => pointer || key;
+  let pad = false;
+  const held = () => pointer || key || pad;
 
   const raise = (already: boolean, mark: () => void): "press" | "ignore" => {
     const was = held();
@@ -114,13 +115,45 @@ export function createTalkHolds() {
       key = false;
       return held() ? "ignore" : "release";
     },
+    padDown(): "press" | "ignore" {
+      return raise(pad, () => {
+        pad = true;
+      });
+    },
+    padUp(): "release" | "ignore" {
+      if (!pad) return "ignore";
+      pad = false;
+      return held() ? "ignore" : "release";
+    },
     dropAll(): "release" | "ignore" {
       const was = held();
       pointer = false;
       key = false;
+      pad = false;
       return was ? "release" : "ignore";
     },
   };
+}
+
+export type PadLike = { buttons?: ArrayLike<{ pressed: boolean }> | null } | null;
+
+/** True when the chosen joystick button is down. Button 0 is the usual trigger. */
+export function joystickPressed(
+  pads: ArrayLike<PadLike> | null,
+  button: number,
+  enabled: boolean,
+): boolean {
+  if (!enabled || !pads || !Number.isInteger(button) || button < 0) return false;
+  for (let i = 0; i < pads.length; i += 1) {
+    if (pads[i]?.buttons?.[button]?.pressed) return true;
+  }
+  return false;
+}
+
+export function talkEdge(wasDown: boolean, isDown: boolean): "press" | "release" | "same" {
+  if (isDown && !wasDown) return "press";
+  if (!isDown && wasDown) return "release";
+  return "same";
 }
 
 export function talkNote(outcome: TalkEnd["outcome"], micOnHold: boolean): string | null {

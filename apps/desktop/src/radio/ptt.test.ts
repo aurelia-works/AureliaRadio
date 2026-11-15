@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createTalkHolds, createTalkSession, isTypingTarget, TALK_CODE, talkNote, type MicStream } from "./ptt.ts";
+import {
+  createTalkHolds,
+  createTalkSession,
+  isTypingTarget,
+  joystickPressed,
+  TALK_CODE,
+  talkEdge,
+  talkNote,
+  type MicStream,
+} from "./ptt.ts";
 
 function deferred<T>() {
   let resolve: (value: T) => void = () => {};
@@ -107,9 +116,29 @@ test("leaving the window drops every hold", () => {
   const holds = createTalkHolds();
   holds.keyDown();
   holds.pointerDown();
+  holds.padDown();
   assert.equal(holds.dropAll(), "release");
   assert.equal(holds.keyUp(), "ignore");
+  assert.equal(holds.padUp(), "ignore");
   assert.equal(holds.dropAll(), "ignore");
+});
+
+test("a joystick trigger shares the microphone and ignores the other buttons", () => {
+  const pads = [{ buttons: [{ pressed: false }, { pressed: true }] }];
+  assert.equal(joystickPressed(pads, 0, true), false);
+  assert.equal(joystickPressed(pads, 1, true), true);
+  assert.equal(joystickPressed(pads, 0, false), false);
+  assert.equal(joystickPressed(null, 0, true), false);
+  assert.equal(talkEdge(false, true), "press");
+  assert.equal(talkEdge(true, true), "same");
+  assert.equal(talkEdge(true, false), "release");
+
+  const holds = createTalkHolds();
+  assert.equal(holds.padDown(), "press");
+  assert.equal(holds.keyDown(), "ignore");
+  assert.equal(holds.padUp(), "ignore");
+  assert.equal(holds.held(), true);
+  assert.equal(holds.keyUp(), "release");
 });
 
 test("the talk key is backtick, not Insert, and not a text field", () => {

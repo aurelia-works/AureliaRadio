@@ -44,7 +44,7 @@ Goal: hold a key, speak, and the core gets the right request.
 - 20 recorded WAV fixtures run through ASR and parser in a test.
 - Done when: the 20 scripted calls score ≥95% intent accuracy in `cargo test`; idle RSS < 150 MB measured.
 - Needs: P0.5 (PTT button and transcript components).
-- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. The typed box calls `submit_utterance`. Hold to talk, and the backtick key while this window is focused, open the microphone and close it on release. The samples are not saved, because speech recognition is not installed. The dev panel can turn the microphone off. The key is not Insert and it is not a system-wide hotkey. Still open: a local ASR model, the 20 WAV fixtures through that model, the idle RSS measurement, and a joystick button.
+- Part done: `parse_intent` classifies the 20 scripted lines, including ICAO phonetics. The typed box calls `submit_utterance`. Hold to talk, the backtick key while this window is focused, and a joystick button open the microphone and close it on release. The samples are not saved, because speech recognition is not installed. The dev panel can turn the microphone or the joystick off, and can pick the joystick button. The key is not Insert and it is not a system-wide hotkey. Still open: a local ASR model, the 20 WAV fixtures through that model, and the idle RSS measurement.
 
 ### P1b — Voice out
 Goal: the controller answers out loud and sounds like a radio.

@@ -77,6 +77,21 @@ export function DevPanel({ settings, update, reset, onClose }: Props) {
       <Toggle id="dev-radio" label="Radio stack" on={settings.showRadioStack} set={(v) => update({ showRadioStack: v })} />
       <Toggle id="dev-sidebar" label="Sidebar" on={settings.sidebarOpen} set={(v) => update({ sidebarOpen: v })} />
       <Toggle id="dev-mic" label="Microphone on hold" on={settings.micOnHold} set={(v) => update({ micOnHold: v })} />
+      <Toggle id="dev-joy" label="Joystick talk" on={settings.joystickTalk} set={(v) => update({ joystickTalk: v })} />
+      <label className="dev-group" htmlFor="dev-joy-button">
+        <span className="dev-label">
+          Joystick button <output className="mono">{settings.joystickButton}</output>
+        </span>
+        <input
+          id="dev-joy-button"
+          type="range"
+          min={0}
+          max={15}
+          step={1}
+          value={settings.joystickButton}
+          onChange={(e) => update({ joystickButton: Number(e.target.value) })}
+        />
+      </label>
 
       <button className="btn ghost" onClick={reset}>
         Reset to defaults
